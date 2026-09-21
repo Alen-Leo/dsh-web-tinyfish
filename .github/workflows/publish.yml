@@ -1,0 +1,44 @@
+name: Publish dsh-web-tinyfish
+
+# Publishes dsh-web-tinyfish to npm using Trusted Publishing (OIDC) — no
+# long-lived tokens. Requires a Trusted Publisher configured on npmjs.com:
+#   Provider: GitHub Actions, Repository: <owner>/dsh-web-tinyfish,
+#   Workflow filename: publish.yml, Allowed actions: npm publish
+# Tag with: dsh-web-tinyfish-v0.1.0
+
+on:
+  push:
+    tags:
+      - 'dsh-web-tinyfish-v*'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # npm publish runs prepublishOnly (tsc build + node --test) itself; the
+      # OIDC exchange is automatic when id-token: write is present.
+      # NODE_AUTH_TOKEN must be empty: actions/setup-node may otherwise inject
+      # GITHUB_TOKEN as the registry credential, shadowing the OIDC flow.
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ""

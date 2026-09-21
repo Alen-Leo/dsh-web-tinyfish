@@ -1,0 +1,59 @@
+# dsh-web-tinyfish bundle layer.
+#
+# Two rows:
+#
+# 1. `dsh-web-tinyfish` — this plugin. It registers the `tinyfish` search and
+#    fetch providers on the ctx.web seam. The row references the package by
+#    name so Node resolution finds the installed code (npm, tarball, or git
+#    install). Its `config` mapping is the documented scaffolding: every field
+#    is optional and commented out, so the shipped defaults apply until a later
+#    layer (profile cordis.patch.yml / --patch) overrides this row by id.
+#
+# 2. `web` — points ctx.web's search at this provider. The dsh-base bundle
+#    pins `searchProvider: deepseek-official` and `fetchProvider: http` on the
+#    `web` row, so merely registering a provider would leave web_search on the
+#    DeepSeek backend. A bundle patch replaces the targeted row's whole
+#    `config` (never a deep merge), so this row restates both keys: search
+#    moves to TinyFish, fetch stays on the anonymous local HTTP provider.
+#    Change `fetchProvider` to `tinyfish` to also route web_fetch through
+#    TinyFish's browser rendering; leave it as `http` to keep the local
+#    provider. Later layers can still override this row by id.
+#
+# This patch deliberately does NOT touch the `tool-web` row: whether the
+# model-facing web tools exist, and for which presets, belongs to the host
+# composition (dsh-base enables them; the Web app composes them per preset).
+# See README "Wiring the web tools" for both placements.
+#
+# Users can override any of these in their profile's cordis.patch.yml — the
+# user layer applies after bundle layers ("last write wins per row"). The
+# environment variables DSH_WEB_SEARCH_PROVIDER / DSH_WEB_FETCH_PROVIDER are
+# equivalent to the `web` row's fields and need no patch at all.
+
+- insert:
+    - id: web-tinyfish
+      name: dsh-web-tinyfish
+      config:
+        # apiKey: "literal-key"        # alternative to the credential ref; avoid committing it
+        # apiKeyEnv: TINYFISH_API_KEY  # default
+        # requestTimeoutMs: 45000      # default
+        # search:
+        #   # baseURL: https://api.search.tinyfish.ai   # default
+        #   location: US
+        #   language: en
+        #   includeDomains: [github.com, arxiv.org]
+        #   excludeDomains: [pinterest.com]
+        #   # recencyMinutes: 1440     # OR afterDate/beforeDate, never both
+        #   # afterDate: "2026-06-01"
+        #   # beforeDate: "2026-06-18"
+        #   # domainType: news         # web | news | research_paper
+        # fetch:
+        #   # baseURL: https://api.fetch.tinyfish.ai   # default
+        #   # format: markdown         # markdown | html
+        #   # ttlSeconds: 3600         # 0 forces a live fetch
+        #   # perUrlTimeoutMs: 45000
+        #   # maxTextBytes: 524288
+        #   includeSelectors: ["main, article"]
+- id: web
+  config:
+    searchProvider: tinyfish
+    fetchProvider: http
