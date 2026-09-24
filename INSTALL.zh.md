@@ -19,10 +19,15 @@
    包尚未发布到 npm 之前，从本地检出经 tarball 安装（不要直接指目录）：
 
    ```sh
-   pnpm pack                                # 在插件检出里执行 → dsh-web-tinyfish-<version>.tgz
+   pnpm pack --pack-destination ~/.dsh/tarballs   # 持久路径——见下方说明
    cd "$DSH_HOME/profiles/<name>"
-   pnpm add /path/to/dsh-web-tinyfish/dsh-web-tinyfish-<version>.tgz
+   pnpm add ~/.dsh/tarballs/dsh-web-tinyfish-<version>.tgz
    ```
+
+   务必 pack 进重启后仍然存在的目录：pnpm 写下的 `file:` 依赖规格会一直
+   指向该 tarball，路径被系统回收（如 `/tmp`）后 profile 里的
+   `pnpm install` / `pnpm update` 就会失败。已装进 `node_modules` 的副本
+   不受影响继续运行，只有重装/更新需要 tarball 存在。
 
    直接 `pnpm add <目录>` 会成为 `link:` 安装并指回检出，检出的 dev
    `node_modules` 会遮蔽安装闭包里的 peer 副本（`@deepseek-ai/dsh-web`
@@ -48,7 +53,7 @@
 3. 提供 key（任选其一）：
 
    ```sh
-   export TINYFISH_API_KEY="tf_..."   # shell / .env
+   export TINYFISH_API_KEY="sk-..."   # shell / .env
    ```
 
    或通过 harness credentials 服务存储，或用 `apiKeyEnv` 引用别的变量。

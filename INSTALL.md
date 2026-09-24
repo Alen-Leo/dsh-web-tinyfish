@@ -20,10 +20,16 @@ English | [中文](INSTALL.zh.md)
    tarball, not the bare directory:
 
    ```sh
-   pnpm pack                                # in the plugin checkout → dsh-web-tinyfish-<version>.tgz
+   pnpm pack --pack-destination ~/.dsh/tarballs   # durable path — see note below
    cd "$DSH_HOME/profiles/<name>"
-   pnpm add /path/to/dsh-web-tinyfish/dsh-web-tinyfish-<version>.tgz
+   pnpm add ~/.dsh/tarballs/dsh-web-tinyfish-<version>.tgz
    ```
+
+   Pack into a directory that survives reboots: the `file:` dependency spec
+   pnpm writes keeps pointing at the tarball, so a path the OS reclaims
+   (`/tmp`) breaks later `pnpm install` / `pnpm update` in the profile. The
+   already-installed copy in `node_modules` keeps running either way; only
+   reinstall/update operations need the tarball to exist.
 
    A direct `pnpm add <directory>` becomes a `link:` install pointing into
    the checkout, and the checkout's dev `node_modules` then shadows the
@@ -52,7 +58,7 @@ English | [中文](INSTALL.zh.md)
 3. Provide the key (choose one):
 
    ```sh
-   export TINYFISH_API_KEY="tf_..."   # shell / .env
+   export TINYFISH_API_KEY="sk-..."   # shell / .env
    ```
 
    or store it through the harness credentials service, or reference another

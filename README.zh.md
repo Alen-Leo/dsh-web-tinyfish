@@ -26,7 +26,7 @@ provider。独立第三方插件——与 DeepSeek、TinyFish 均无隶属关系
 ## 快速开始
 
 ```sh
-export TINYFISH_API_KEY="tf_..."   # 从 https://agent.tinyfish.ai/api-keys 获取
+export TINYFISH_API_KEY="sk-..."   # 从 https://agent.tinyfish.ai/api-keys 获取，key 以 sk- 开头
 ```
 
 安装到你的 dsh profile（见 [INSTALL.zh.md](INSTALL.zh.md)），补丁层会把

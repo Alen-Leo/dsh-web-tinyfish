@@ -27,7 +27,7 @@ and the [TinyFish API docs](https://docs.tinyfish.ai).
 ## Quick start
 
 ```sh
-export TINYFISH_API_KEY="tf_..."   # from https://agent.tinyfish.ai/api-keys
+export TINYFISH_API_KEY="sk-..."   # keys from https://agent.tinyfish.ai/api-keys start with sk-
 ```
 
 Install into your dsh profile (see [INSTALL.md](INSTALL.md)) and the patch layer
