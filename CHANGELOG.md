@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.2
+
+- Docs: correct the API-key example prefix — keys issued at
+  agent.tinyfish.ai/api-keys start with `sk-`, not `tf_` (README, INSTALL,
+  USAGE pairs).
+- Docs: the tarball install flow now packs into `~/.dsh/tarballs`: the
+  `file:` dependency spec pnpm records keeps pointing at the tarball, so an
+  OS-reclaimed path such as `/tmp` breaks later `pnpm install` /
+  `pnpm update` in the profile. Docs ship inside the tarball, hence the
+  version bump.
+
 ## 0.1.1
 
 - Fix misleading search/fetch transport errors: undici reports both endpoint

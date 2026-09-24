@@ -37,6 +37,6 @@
 ## 验证安装
 
 ```sh
-export TINYFISH_API_KEY="tf_..."
+export TINYFISH_API_KEY="sk-..."
 dsh --profile <name> "用 web_search 找 TinyFish 文档，再 web_fetch https://docs.tinyfish.ai/fetch-api 并总结"
 ```

@@ -38,6 +38,6 @@ is no separate tool surface.
 ## Verifying the installation
 
 ```sh
-export TINYFISH_API_KEY="tf_..."
+export TINYFISH_API_KEY="sk-..."
 dsh --profile <name> "use web_search to find the TinyFish docs, then web_fetch https://docs.tinyfish.ai/fetch-api and summarize"
 ```
