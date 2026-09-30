@@ -9,14 +9,14 @@ import type {
 } from '@deepseek-ai/dsh-web'
 import { TINYFISH_PROVIDER_ID, USER_AGENT, nonEmpty } from './config.ts'
 import { requireApiKey } from './credentials.ts'
-import { bodyReadError, credentialedFetch, mapTinyFishApiError, parseEndpoint } from './endpoint.ts'
+import { assertRequestConfig, bodyReadError, credentialedFetch, mapTinyFishApiError, parseEndpoint } from './endpoint.ts'
 import type { ResolvedSearchOptions, TinyFishSearchResponse } from './types.ts'
 
 /**
  * Normalize one Search API payload: keeps items with a URL, deduplicates by
  * URL, caps the list at `maxResults`, and flags the cut. Fields the seam
  * cannot carry (`position`, `site_name`, `publisher`, and the academic
- * `authors`/`venue`/`pub_year`/`citation_count`/`pdf_url`) are dropped.
+ * `authors`/`venue`/`year`/`cited_by_count`/`pdf_url`) are dropped.
  * @param payload - the decoded Search API response.
  * @param maxResults - the request's result bound, if any.
  * @returns the normalized search result.
@@ -73,6 +73,7 @@ export class TinyFishSearchProvider implements WebSearchProvider {
 
   async search(request: WebSearchRequest, signal?: AbortSignal): Promise<WebSearchResult> {
     const options = this.resolveOptions()
+    assertRequestConfig(options.filters)
     const endpoint = parseEndpoint(options.baseURL, 'TinyFish search')
     const apiKey = await requireApiKey(options.key, 'TinyFish search')
     const filters = options.filters

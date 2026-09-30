@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.2.0
+
+Targets dsh `>=0.2.0-rc.2 <0.3.0` (cordis `>=4.0.4`, schemastery `3.18.4`).
+
+- **Breaking:** configuration is declared `volatile()` and read through `.get()`
+  per request. The retired `SettingsProvider.installSection()` call is gone: dsh
+  0.1.7-alpha.1 replaced that seam with schema-projected config forms, so the
+  old call installed no settings card on newer hosts and failed silently. The
+  `web-tinyfish` settings form now comes from the Config schema itself, and
+  `SETTINGS_NAMESPACE` is no longer exported.
+- **Breaking:** peer and engine ranges move to `>=0.2.0-rc.2 <0.3.0`
+  (`@deepseek-ai/cordis` `>=4.0.4`).
+- Fix the fetch-target preflight: IPv4-mapped IPv6 was refused only in its
+  dotted spelling, while `URL.hostname` normalizes it to hex
+  (`[::ffff:7f00:1]`), so `http://[::ffff:10.0.0.1]/` was admitted. Address
+  literals are classified with `ipaddr.js` (the first-party choice), which also
+  covers the 6to4, Teredo, and NAT64 spellings whose embedded IPv4 target a
+  prefix test cannot reach. A trailing DNS-root dot is normalized before the
+  textual checks, so `http://localhost./` names the same refused host as
+  `http://localhost/`. The tests now drive those spellings through
+  `validateTargetUrl`. A hostname that *resolves* to a private address still
+  cannot be detected offline; TinyFish refuses those server-side.
+- A cross-field configuration violation is reported as a provider error naming
+  the field instead of leaving the provider "registered but unavailable", and
+  such a request sends nothing. `available()` is now purely the seam's selection
+  gate: a resolvable key and a parseable endpoint.
+- `requestTimeoutMs` defaults to 150s — TinyFish's documented client guidance,
+  and above the 110s per-URL budget `fetch.perUrlTimeoutMs` can already set.
+  Docs note that `tool-web`'s `fetchTimeoutMs` / `searchTimeoutMs` bound a call
+  first and must be raised alongside it.
+- Docs: rate limits split per API (Search 30 requests/min, Fetch 150 URLs/min);
+  academic wire fields corrected to `year` / `cited_by_count`; preflight and
+  dependency claims corrected; `CHANGELOG.md` now ships in the package.
+
 ## 0.1.2
 
 - Docs: correct the API-key example prefix — keys issued at

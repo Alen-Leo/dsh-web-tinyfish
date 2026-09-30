@@ -4,7 +4,7 @@ English | [中文](INSTALL.zh.md)
 
 ## Requirements
 
-- dsh `>=0.1.5-rc.2` with a profile you control (`dsh --profile <name>`).
+- dsh `>=0.2.0-rc.2 <0.3.0` with a profile you control (`dsh --profile <name>`).
 - Node `^22.19 || >=24` (the profile's runtime already satisfies this).
 
 ## Steps
@@ -62,7 +62,8 @@ English | [中文](INSTALL.zh.md)
    ```
 
    or store it through the harness credentials service, or reference another
-   variable with `apiKeyEnv`.
+   variable with `apiKeyEnv`. Every field is live, so the plugin's settings form
+   (Plugins → `web-tinyfish`) edits `apiKeyEnv` and the rest without a restart.
 
 4. Restart the profile. `web_search` now runs on TinyFish. Optionally retarget
    `web_fetch` too — see the README.

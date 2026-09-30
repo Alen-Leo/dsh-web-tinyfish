@@ -19,12 +19,13 @@ is no separate tool surface.
 | TinyFish side | Tool-visible failure |
 | --- | --- |
 | `401` `MISSING_API_KEY` / `INVALID_API_KEY` / `UNAUTHORIZED` | credential-missing error naming the reference (`WEB_PROVIDER_CREDENTIAL_MISSING`) |
-| `429` rate limit (150 URLs/min per key) | provider error carrying the TinyFish code |
+| `429` rate limit (Search: 30 requests/min per key; Fetch: 150 URLs/min per key) | provider error carrying the TinyFish code |
 | `400` `INVALID_INPUT` and other non-2xx | provider error carrying code + message |
 | fetch per-URL failure (`bot_blocked`, `timeout`, `selector_not_matched`, `selector_unsupported`, `content_too_large`, `empty_content`, …) | provider error naming the URL and the code; selector failures add unmatched + candidate selectors |
 | caller cancellation | `WEB_ABORTED` |
 | endpoint redirect | refused before following; provider error naming the redirect |
 | network/DNS/TLS failure (`TypeError: fetch failed`) | provider error labeled `network/transport`, with the undici cause chain |
+| invalid cross-field configuration (`recencyMinutes` beside a date bound, a publication year without `research_paper`, …) | provider error naming the field; no request is sent |
 | private/loopback fetch target | refused locally; no request leaves the machine |
 
 ## Cost notes

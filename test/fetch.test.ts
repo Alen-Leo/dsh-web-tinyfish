@@ -222,6 +222,23 @@ describe('TinyFishFetchProvider', () => {
     } finally { restore() }
   })
 
+  it('reports an invalid selector list at the request, not as unavailability', async () => {
+    const { calls, restore } = stubFetch(() => jsonResponse({}))
+    try {
+      const provider = new TinyFishFetchProvider(fetchOptions({
+        includeSelectors: Array.from({ length: 21 }, () => 'div'),
+      }))
+      strictEqual(provider.available(), true)
+      await rejects(
+        provider.fetch({ url: 'https://example.com/page' }),
+        (error: unknown) => error instanceof WebError
+          && error.code === 'WEB_PROVIDER_ERROR'
+          && error.message.includes('at most 20'),
+      )
+      strictEqual(calls.length, 0)
+    } finally { restore() }
+  })
+
   it('admits a configured private-network endpoint (local mocks, LAN gateways)', async () => {
     const { calls, restore } = stubFetch(() => jsonResponse({
       results: [{ url: 'https://example.com/page', text: 'content' }],

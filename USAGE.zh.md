@@ -18,12 +18,13 @@
 | TinyFish 侧 | 工具侧错误 |
 | --- | --- |
 | `401` `MISSING_API_KEY` / `INVALID_API_KEY` / `UNAUTHORIZED` | 凭据缺失错误，指名引用（`WEB_PROVIDER_CREDENTIAL_MISSING`） |
-| `429` 限流（每 key 150 URL/分钟） | provider 错误，携带 TinyFish 错误码 |
+| `429` 限流（Search 每 key 30 请求/分钟；Fetch 每 key 150 URL/分钟） | provider 错误，携带 TinyFish 错误码 |
 | `400` `INVALID_INPUT` 及其他非 2xx | provider 错误，携带错误码与消息 |
 | fetch 每 URL 失败（`bot_blocked`、`timeout`、`selector_not_matched`、`selector_unsupported`、`content_too_large`、`empty_content`……） | provider 错误，指名 URL 与错误码；选择器类失败附未命中与候选选择器 |
 | 调用方取消 | `WEB_ABORTED` |
 | 端点重定向 | 跟随前即拒绝；provider 错误，文案标明 endpoint redirect |
 | 网络/DNS/TLS 失败（`TypeError: fetch failed`） | provider 错误，文案标明 `network/transport`，并带上 undici cause 链 |
+| 跨字段配置非法（`recencyMinutes` 与日期边界同用、未选 `research_paper` 却给出版年……） | provider 错误，指名出错字段；不发送任何请求 |
 | 抓取目标为私网/环回地址 | 本地拒绝；不会有任何请求出机 |
 
 ## 成本说明

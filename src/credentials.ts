@@ -18,7 +18,10 @@ import type { ApiKeySource } from './types.ts'
  * @param config - the section carrying `apiKey` and `apiKeyEnv`.
  * @returns the key source both providers resolve through.
  */
-export function apiKeySource(ctx: Context, config: { apiKey?: string, apiKeyEnv?: string }): ApiKeySource {
+export function apiKeySource(
+  ctx: Context,
+  config: { apiKey?: string | undefined, apiKeyEnv?: string | undefined },
+): ApiKeySource {
   const ref = credentialRef(config.apiKeyEnv ?? DEFAULT_API_KEY_ENV)
   const literal = nonEmpty(config.apiKey) ? config.apiKey : undefined
   return {

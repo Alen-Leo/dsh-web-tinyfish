@@ -6,8 +6,30 @@
  */
 
 import { WebError } from '@deepseek-ai/dsh-web'
-import { nonEmpty } from './config.ts'
-import type { TinyFishApiError } from './types.ts'
+import { nonEmpty, validateConfig } from './config.ts'
+import type { FetchConfig, SearchConfig, TinyFishApiError } from './types.ts'
+
+/**
+ * Re-judge the cross-field configuration rules on one request's resolved
+ * options and report a violation as a provider failure.
+ *
+ * `ctx.web` reports an unavailable provider only as "registered but
+ * unavailable", so a request path that let a bad section throw would hide the
+ * reason; the message this throws names the offending field instead.
+ * @param search - the request's resolved search filters, when one is running.
+ * @param fetch - the request's resolved fetch options, when one is running.
+ */
+export function assertRequestConfig(search: SearchConfig | undefined, fetch?: FetchConfig): void {
+  try {
+    validateConfig(search, fetch)
+  } catch (error: unknown) {
+    throw new WebError(
+      error instanceof Error ? error.message : String(error),
+      'WEB_PROVIDER_ERROR',
+      { cause: error },
+    )
+  }
+}
 
 /**
  * Parse and admit one API endpoint: a valid `http(s)` URL. The endpoint is

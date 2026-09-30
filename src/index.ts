@@ -6,14 +6,11 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
-// Type-only: pulls the ctx.settings merge into this program without requiring
-// the service at runtime.
-import type {} from '@deepseek-ai/dsh-settings'
 import { apiKeySource } from './credentials.ts'
 import {
   Config,
   DEFAULT_FETCH_BASE_URL, DEFAULT_FETCH_FORMAT, DEFAULT_MAX_TEXT_BYTES, DEFAULT_REQUEST_TIMEOUT_MS,
-  DEFAULT_SEARCH_BASE_URL, FETCH_BASE_URL_ENV, SEARCH_BASE_URL_ENV, SETTINGS_NAMESPACE,
+  DEFAULT_SEARCH_BASE_URL, FETCH_BASE_URL_ENV, SEARCH_BASE_URL_ENV,
   nonEmpty, validateConfig,
 } from './config.ts'
 import { TinyFishFetchProvider } from './fetch.ts'
@@ -25,7 +22,7 @@ import type {
 export { Config, validateConfig } from './config.ts'
 export {
   DEFAULT_API_KEY_ENV, DEFAULT_FETCH_BASE_URL, DEFAULT_REQUEST_TIMEOUT_MS, DEFAULT_SEARCH_BASE_URL,
-  SETTINGS_NAMESPACE, TINYFISH_PROVIDER_ID,
+  TINYFISH_PROVIDER_ID,
 } from './config.ts'
 export { TinyFishFetchProvider } from './fetch.ts'
 export { TinyFishSearchProvider, mapTinyFishSearchResponse } from './search.ts'
@@ -72,55 +69,46 @@ function buildFilters(search: SearchConfig | undefined): SearchFilters {
 
 /** Project one section into the fully-defaulted inputs of a search request. */
 function buildSearchOptions(ctx: Context, config: TinyfishConfig): ResolvedSearchOptions {
-  validateConfig(config)
+  const section = config.search?.get()
   return {
-    baseURL: resolveBaseURL(config.search?.baseURL, SEARCH_BASE_URL_ENV, DEFAULT_SEARCH_BASE_URL, ctx),
-    requestTimeoutMs: config.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
-    key: apiKeySource(ctx, config),
-    filters: buildFilters(config.search),
+    baseURL: resolveBaseURL(section?.baseURL, SEARCH_BASE_URL_ENV, DEFAULT_SEARCH_BASE_URL, ctx),
+    requestTimeoutMs: config.requestTimeoutMs.get(),
+    key: apiKeySource(ctx, { apiKey: config.apiKey?.get(), apiKeyEnv: config.apiKeyEnv.get() }),
+    filters: buildFilters(section),
   }
 }
 
 /** Project one section into the fully-defaulted inputs of a fetch request. */
 function buildFetchOptions(ctx: Context, config: TinyfishConfig): ResolvedFetchOptions {
-  validateConfig(config)
-  const section = config.fetch ?? {}
+  const section = config.fetch?.get()
   return {
-    baseURL: resolveBaseURL(section.baseURL, FETCH_BASE_URL_ENV, DEFAULT_FETCH_BASE_URL, ctx),
-    requestTimeoutMs: config.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
-    format: section.format ?? DEFAULT_FETCH_FORMAT,
-    maxTextBytes: section.maxTextBytes ?? DEFAULT_MAX_TEXT_BYTES,
-    key: apiKeySource(ctx, config),
-    ...(section.ttlSeconds !== undefined ? { ttlSeconds: section.ttlSeconds } : {}),
-    ...(section.perUrlTimeoutMs !== undefined ? { perUrlTimeoutMs: section.perUrlTimeoutMs } : {}),
-    ...(section.includeSelectors !== undefined && section.includeSelectors.length > 0
+    baseURL: resolveBaseURL(section?.baseURL, FETCH_BASE_URL_ENV, DEFAULT_FETCH_BASE_URL, ctx),
+    requestTimeoutMs: config.requestTimeoutMs.get(),
+    format: section?.format ?? DEFAULT_FETCH_FORMAT,
+    maxTextBytes: section?.maxTextBytes ?? DEFAULT_MAX_TEXT_BYTES,
+    key: apiKeySource(ctx, { apiKey: config.apiKey?.get(), apiKeyEnv: config.apiKeyEnv.get() }),
+    ...(section?.ttlSeconds !== undefined ? { ttlSeconds: section.ttlSeconds } : {}),
+    ...(section?.perUrlTimeoutMs !== undefined ? { perUrlTimeoutMs: section.perUrlTimeoutMs } : {}),
+    ...(section?.includeSelectors !== undefined && section.includeSelectors.length > 0
       ? { includeSelectors: section.includeSelectors }
       : {}),
-    ...(section.excludeSelectors !== undefined && section.excludeSelectors.length > 0
+    ...(section?.excludeSelectors !== undefined && section.excludeSelectors.length > 0
       ? { excludeSelectors: section.excludeSelectors }
       : {}),
   }
 }
 
 /**
- * Register the TinyFish search and fetch providers with `ctx.web`. A settings
- * service, when present, installs the `web-tinyfish` configuration card; both
- * providers read the current section per request, so a committed settings
- * change applies without re-registration.
+ * Register the TinyFish search and fetch providers with `ctx.web`.
+ *
+ * Both providers keep the `Volatile` references they are handed and read their
+ * snapshot per request, so a committed configuration change applies without
+ * re-registration and without a settings listener. The configuration is judged
+ * once here — a bad composition fails loud at load — and again per request,
+ * where the failing provider reports the reason (see `assertRequestConfig`).
  */
 export function apply(ctx: Context, config: TinyfishConfig): void {
-  validateConfig(config)
-  let current: () => TinyfishConfig = () => config
-  ctx.inject(['settings'], (settingsCtx) => {
-    settingsCtx.settings.installSection(ctx, SETTINGS_NAMESPACE, Config, config, {
-      setSource: (source) => {
-        current = source
-      },
-      // Nothing resolves at registration: each request projects the section,
-      // so a committed change needs no re-registration.
-      onChange: () => {},
-    })
-  })
-  ctx.web.registerSearchProvider(new TinyFishSearchProvider(() => buildSearchOptions(ctx, current())))
-  ctx.web.registerFetchProvider(new TinyFishFetchProvider(() => buildFetchOptions(ctx, current())))
+  validateConfig(config.search?.get(), config.fetch?.get())
+  ctx.web.registerSearchProvider(new TinyFishSearchProvider(() => buildSearchOptions(ctx, config)))
+  ctx.web.registerFetchProvider(new TinyFishFetchProvider(() => buildFetchOptions(ctx, config)))
 }

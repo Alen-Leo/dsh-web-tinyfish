@@ -1,16 +1,32 @@
 /**
  * Composition tests on a real cordis `Context`: both providers register on a
- * real `ctx.web`, the settings card installs and switches live, duplicate
+ * real `ctx.web`, a live configuration snapshot is read per request, duplicate
  * registration fails loud, and disposal removes the providers.
  * @module dsh-web-tinyfish/tests/apply
  */
 
 import { deepStrictEqual, rejects, strictEqual } from 'node:assert'
 import { afterEach, describe, it } from 'node:test'
-import { Context, Service } from '@deepseek-ai/cordis'
+import { Context } from '@deepseek-ai/cordis'
 import WebRuntime, { WebError } from '@deepseek-ai/dsh-web'
 import * as webTinyfish from '../src/index.ts'
+import type { FetchConfig, SearchConfig } from '../src/types.ts'
 import { jsonResponse, stubFetch } from './helpers.ts'
+
+/** Snapshot arrays are readonly; composition input declares plain arrays. */
+type Mutable<T> = T extends readonly (infer E)[] ? E[] : T
+
+/** One section as composition YAML spells it, unlike a resolved snapshot. */
+type RawSection<T> = { -readonly [K in keyof T]: Mutable<NonNullable<T[K]>> | Extract<T[K], undefined> }
+
+/** The composition-time config shape `ctx.plugin` parses into volatile refs. */
+interface RawConfig {
+  apiKey?: string
+  apiKeyEnv?: string
+  requestTimeoutMs?: number
+  search?: RawSection<SearchConfig>
+  fetch?: RawSection<FetchConfig>
+}
 
 const stubs: Array<() => void> = []
 
@@ -18,28 +34,9 @@ afterEach(() => {
   while (stubs.length > 0) stubs.pop()!()
 })
 
-/** A minimal settings service capturing `installSection` calls. */
-class FakeSettingsService extends Service {
-  readonly installed: Array<{ namespace: string, hooks: SettingsSectionHooks }> = []
-
-  constructor(ctx: Context) {
-    super(ctx, 'settings')
-  }
-
-  installSection(_ctx: Context, namespace: string, _schema: unknown, _config: unknown, hooks: SettingsSectionHooks): void {
-    this.installed.push({ namespace, hooks })
-  }
-}
-
-interface SettingsSectionHooks {
-  setSource(source: () => unknown): void
-  onChange(): void
-}
-
-async function boot(config: webTinyfish.WebTinyfishConfig, withSettings = false) {
+async function boot(config: RawConfig) {
   const ctx = new Context()
   await ctx.plugin(WebRuntime)
-  if (withSettings) await ctx.plugin(FakeSettingsService)
   const fiber = await ctx.plugin(webTinyfish, config)
   return { ctx, fiber }
 }
@@ -99,17 +96,32 @@ describe('apply', () => {
     strictEqual(calls[0]!.headers['x-api-key'], 'k')
   })
 
-  it('installs the settings card and applies a committed section live', async () => {
-    const { ctx } = await boot({ apiKey: 'k', search: { baseURL: 'https://before.example.test' } }, true)
-    const settings = ctx.get('settings') as unknown as FakeSettingsService
-    strictEqual(settings.installed.length, 1)
-    strictEqual(settings.installed[0]!.namespace, 'web-tinyfish')
+  it('applies a committed configuration change live without re-registration', async () => {
+    // The harness projects the plugin's volatile Config into a form and hands
+    // `apply` stable references; a committed edit is visible on the next
+    // request without re-registration, so a live change is a new `get()` value.
+    const ctx = new Context()
+    await ctx.plugin(WebRuntime)
+    let section: SearchConfig = { baseURL: 'https://before.example.test' }
+    let key = 'k1'
+    webTinyfish.apply(ctx, {
+      apiKey: { get: () => key },
+      apiKeyEnv: { get: () => 'TINYFISH_API_KEY' },
+      requestTimeoutMs: { get: () => 5000 },
+      search: { get: () => section },
+    })
     const { calls, restore } = stubFetch(() => jsonResponse({ results: [] }))
     stubs.push(restore)
-    settings.installed[0]!.hooks.setSource(() => ({ apiKey: 'k2', search: { baseURL: 'https://after.example.test' } }))
+
     await ctx.web.search({ query: 'q' })
-    strictEqual(new URL(calls[0]!.url).host, 'after.example.test')
-    strictEqual(calls[0]!.headers['x-api-key'], 'k2')
+    strictEqual(new URL(calls[0]!.url).host, 'before.example.test')
+    strictEqual(calls[0]!.headers['x-api-key'], 'k1')
+
+    section = { baseURL: 'https://after.example.test' }
+    key = 'k2'
+    await ctx.web.search({ query: 'q' })
+    strictEqual(new URL(calls[1]!.url).host, 'after.example.test')
+    strictEqual(calls[1]!.headers['x-api-key'], 'k2')
   })
 
   it('rejects a misconfigured section at load', async () => {

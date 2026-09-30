@@ -5,18 +5,24 @@
  * @module dsh-web-tinyfish/types
  */
 
-/** Plugin configuration validated by the cordis `Config` schema. */
+import type { Volatile } from '@deepseek-ai/cordis'
+
+/**
+ * Plugin configuration as cordis hands it to `apply`. Each live field is a
+ * `Volatile` reference: the plugin keeps the reference and reads `.get()` per
+ * request, so a committed configuration change reaches the next request.
+ */
 export interface Config {
   /** Literal TinyFish API key. Prefer `apiKeyEnv` so no secret enters config files. */
-  readonly apiKey?: string
+  readonly apiKey?: Volatile<string | undefined>
   /** Credential reference resolved per request; defaults to `TINYFISH_API_KEY`. */
-  readonly apiKeyEnv?: string
+  readonly apiKeyEnv: Volatile<string>
   /** Whole-request timeout for both TinyFish APIs, in milliseconds. */
-  readonly requestTimeoutMs?: number
+  readonly requestTimeoutMs: Volatile<number>
   /** Search-provider settings; every field is optional. */
-  readonly search?: SearchConfig
+  readonly search?: Volatile<SearchConfig | undefined>
   /** Fetch-provider settings; every field is optional. */
-  readonly fetch?: FetchConfig
+  readonly fetch?: Volatile<FetchConfig | undefined>
 }
 
 /** TinyFish Search API tuning forwarded with every query. */
@@ -28,9 +34,9 @@ export interface SearchConfig {
   /** Language code (`en`, `zh`, ...); forwarded as `language`. */
   readonly language?: string
   /** Restrict results to these bare domains; forwarded as `include_domains`. */
-  readonly includeDomains?: string[]
+  readonly includeDomains?: readonly string[]
   /** Drop results from these bare domains; forwarded as `exclude_domains`. */
-  readonly excludeDomains?: string[]
+  readonly excludeDomains?: readonly string[]
   /** Freshness window in minutes; cannot combine with the date bounds. */
   readonly recencyMinutes?: number
   /** Lower date bound `YYYY-MM-DD`; forwarded as `after_date`. */
@@ -58,9 +64,9 @@ export interface FetchConfig {
   /** Local byte cap on the extracted text; the result flags `truncated` when cut. */
   readonly maxTextBytes?: number
   /** CSS selectors scoping extraction; forwarded as `include_selectors`. */
-  readonly includeSelectors?: string[]
+  readonly includeSelectors?: readonly string[]
   /** CSS selectors removed before extraction; forwarded as `exclude_selectors`. */
-  readonly excludeSelectors?: string[]
+  readonly excludeSelectors?: readonly string[]
 }
 
 /**
@@ -85,8 +91,8 @@ export interface ApiKeySource {
 export interface SearchFilters {
   readonly location?: string
   readonly language?: string
-  readonly includeDomains?: string[]
-  readonly excludeDomains?: string[]
+  readonly includeDomains?: readonly string[]
+  readonly excludeDomains?: readonly string[]
   readonly recencyMinutes?: number
   readonly afterDate?: string
   readonly beforeDate?: string
@@ -112,8 +118,8 @@ export interface ResolvedFetchOptions {
   readonly key: ApiKeySource
   readonly ttlSeconds?: number
   readonly perUrlTimeoutMs?: number
-  readonly includeSelectors?: string[]
-  readonly excludeSelectors?: string[]
+  readonly includeSelectors?: readonly string[]
+  readonly excludeSelectors?: readonly string[]
 }
 
 /** One TinyFish Search API result item (wire shape). */
@@ -127,8 +133,8 @@ export interface TinyFishSearchItem {
   readonly publisher?: string | null
   readonly authors?: string[] | null
   readonly venue?: string | null
-  readonly pub_year?: number | null
-  readonly citation_count?: number | null
+  readonly year?: number | null
+  readonly cited_by_count?: number | null
   readonly pdf_url?: string | null
 }
 

@@ -7,7 +7,9 @@
 #    name so Node resolution finds the installed code (npm, tarball, or git
 #    install). Its `config` mapping is the documented scaffolding: every field
 #    is optional and commented out, so the shipped defaults apply until a later
-#    layer (profile cordis.patch.yml / --patch) overrides this row by id.
+#    layer (profile cordis.patch.yml / --patch) overrides this row by id. Every
+#    field is declared volatile, so the same values are editable in the plugin's
+#    settings form without a restart.
 #
 # 2. `web` — points ctx.web's search at this provider. The dsh-base bundle
 #    pins `searchProvider: deepseek-official` and `fetchProvider: http` on the

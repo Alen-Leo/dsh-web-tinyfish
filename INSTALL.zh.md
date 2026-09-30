@@ -4,7 +4,7 @@
 
 ## 前提
 
-- dsh `>=0.1.5-rc.2`，且有一个你自己控制的 profile（`dsh --profile <name>`）。
+- dsh `>=0.2.0-rc.2 <0.3.0`，且有一个你自己控制的 profile（`dsh --profile <name>`）。
 - Node `^22.19 || >=24`（profile 运行时本身已满足）。
 
 ## 步骤
@@ -56,7 +56,9 @@
    export TINYFISH_API_KEY="sk-..."   # shell / .env
    ```
 
-   或通过 harness credentials 服务存储，或用 `apiKeyEnv` 引用别的变量。
+   或通过 harness credentials 服务存储，或用 `apiKeyEnv` 引用别的变量。所有字段都可
+   实时生效，因此也可以在插件设置表单（Plugins → `web-tinyfish`）里改 `apiKeyEnv`
+   及其余字段，无需重启。
 
 4. 重启 profile。`web_search` 即走 TinyFish。可选把 `web_fetch` 也切过去——
    见 README。

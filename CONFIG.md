@@ -2,9 +2,10 @@
 
 English | [中文](CONFIG.zh.md)
 
-Every field is optional; the shipped defaults need nothing but
-`TINYFISH_API_KEY`. Cross-field rules fail loud at plugin load (and at the
-first request for a broken settings section).
+Every field is optional and live: the harness projects them into the
+`web-tinyfish` entry's settings form, and both providers read the current
+values per request. Cross-field rules fail loud at plugin load, and at the
+first request when a stored edit left a combination no single field can reject.
 
 ## Top level
 
@@ -12,12 +13,20 @@ first request for a broken settings section).
 | --- | --- | --- | --- |
 | `apiKey` | string (secret) | — | Literal API key. Avoid committing it; prefer `apiKeyEnv`. |
 | `apiKeyEnv` | string (credential-ref) | `TINYFISH_API_KEY` | Reference resolved per request through the credentials service, then the launch environment. |
-| `requestTimeoutMs` | integer ≥100 | `45000` | Whole-request timeout for both APIs. |
+| `requestTimeoutMs` | integer ≥100 | `150000` | Whole-request timeout for both APIs. |
 | `search` | object | — | Search-provider tuning (below). |
 | `fetch` | object | — | Fetch-provider tuning (below). |
 
 Endpoint overrides: `TINYFISH_SEARCH_BASE_URL` / `TINYFISH_FETCH_BASE_URL`
 launch-environment variables apply when the corresponding `baseURL` is unset.
+
+`requestTimeoutMs` defaults to 150s because TinyFish budgets 110s per URL,
+applies a 120s ceiling to a whole fetch request, and asks clients to wait at
+least 150s to receive its structured `timeout` entry instead of an abort; it
+must also stay above `fetch.perUrlTimeoutMs` or that budget can never bite.
+`tool-web` bounds a call before the provider does (`fetchTimeoutMs` /
+`searchTimeoutMs`, 30s by default; `dsh-base` raises search to 60s), so raise
+those too when you raise this one.
 
 ## `search`
 
@@ -42,7 +51,7 @@ launch-environment variables apply when the corresponding `baseURL` is unset.
 | `baseURL` | string | `https://api.fetch.tinyfish.ai` | — |
 | `format` | `markdown` \| `html` | `markdown` | `format` — markdown → text body, html → html body |
 | `ttlSeconds` | integer ≥0 | — | `ttl` — omit = any cache, `0` = live fetch |
-| `perUrlTimeoutMs` | 1–110000 | — | `per_url_timeout_ms` — TinyFish-side per-URL budget |
+| `perUrlTimeoutMs` | 1–110000 | — | `per_url_timeout_ms` — TinyFish-side per-URL budget; keep below `requestTimeoutMs` |
 | `maxTextBytes` | integer ≥1024 | `524288` | local byte cap; result flags `truncated` when cut |
 | `includeSelectors` | string[1..20] | — | `include_selectors` — CSS selectors, each 1–1000 chars |
 | `excludeSelectors` | string[1..20] | — | `exclude_selectors` |

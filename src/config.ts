@@ -6,13 +6,10 @@
 
 import { createRequire } from 'node:module'
 import z from '@deepseek-ai/schemastery'
-import type { Config as TinyfishConfig } from './types.ts'
+import type { FetchConfig, SearchConfig } from './types.ts'
 
 /** Provider id both providers register under on the `ctx.web` seam. */
 export const TINYFISH_PROVIDER_ID = 'tinyfish'
-
-/** Settings namespace the configuration card installs under. */
-export const SETTINGS_NAMESPACE = 'web-tinyfish'
 
 /** Credential reference resolved per request when `apiKeyEnv` is unset. */
 export const DEFAULT_API_KEY_ENV = 'TINYFISH_API_KEY'
@@ -29,8 +26,17 @@ export const DEFAULT_SEARCH_BASE_URL = 'https://api.search.tinyfish.ai'
 /** TinyFish public Fetch API endpoint. */
 export const DEFAULT_FETCH_BASE_URL = 'https://api.fetch.tinyfish.ai'
 
-/** Default whole-request timeout for both TinyFish APIs. */
-export const DEFAULT_REQUEST_TIMEOUT_MS = 45_000
+/**
+ * Default whole-request timeout for both TinyFish APIs (150s).
+ *
+ * TinyFish budgets 110s per URL, applies a 120s ceiling to the whole fetch
+ * request, and asks clients to wait at least 150s to receive its structured
+ * `timeout` entry instead of a client-side abort. The same budget must also
+ * exceed `fetch.perUrlTimeoutMs`, or that setting can never take effect.
+ * `tool-web` bounds each call first (`fetchTimeoutMs` / `searchTimeoutMs`,
+ * 30s by default), so raise those too when a long fetch is wanted.
+ */
+export const DEFAULT_REQUEST_TIMEOUT_MS = 150_000
 
 /** Default extraction format for fetched pages. */
 export const DEFAULT_FETCH_FORMAT = 'markdown' as const
@@ -52,10 +58,15 @@ export const MAX_TARGET_URL_LENGTH = 2048
 /** `YYYY-MM-DD` shape required by the search date bounds. */
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
-export const Config: z<TinyfishConfig> = z.object({
-  apiKey: z.string().role('secret'),
-  apiKeyEnv: z.string().role('credential-ref').default(DEFAULT_API_KEY_ENV),
-  requestTimeoutMs: z.number().step(1).min(100).default(DEFAULT_REQUEST_TIMEOUT_MS),
+/**
+ * Config schema. Every field is `volatile()`, so the harness projects the
+ * plugin's live configuration into a settings form keyed by the entry id and
+ * hands `apply` stable references the plugin reads per request.
+ */
+export const Config = z.object({
+  apiKey: z.string().role('secret').volatile(),
+  apiKeyEnv: z.string().role('credential-ref').default(DEFAULT_API_KEY_ENV).volatile(),
+  requestTimeoutMs: z.number().step(1).min(100).default(DEFAULT_REQUEST_TIMEOUT_MS).volatile(),
   search: z.object({
     baseURL: z.string(),
     location: z.string(),
@@ -68,7 +79,7 @@ export const Config: z<TinyfishConfig> = z.object({
     domainType: z.union(['web', 'news', 'research_paper'] as const),
     pubYearMin: z.number().step(1).min(0).max(9999),
     pubYearMax: z.number().step(1).min(0).max(9999),
-  }),
+  }).volatile(),
   fetch: z.object({
     baseURL: z.string(),
     format: z.union(['markdown', 'html'] as const),
@@ -77,7 +88,7 @@ export const Config: z<TinyfishConfig> = z.object({
     maxTextBytes: z.number().step(1).min(1024),
     includeSelectors: z.array(z.string()),
     excludeSelectors: z.array(z.string()),
-  }),
+  }).volatile(),
 })
 
 /** True for a defined string with at least one non-whitespace character. */
@@ -110,13 +121,19 @@ function selectorListProblem(selectors: readonly string[] | undefined, field: st
 
 /**
  * Cross-field validation the flat schema cannot express. The plugin calls it
- * at load so a misconfiguration fails loud, and per request so a broken
- * settings section fails at its first use.
- * @param config - the section to check.
+ * at load — so a misconfigured composition fails loud — and again per request,
+ * where the caller turns the message into a provider error. The harness
+ * validates a settings write against the schema only, so a cross-field
+ * combination that no single field can reject (a freshness window beside a
+ * date bound, say) still has to be caught here at its first use.
+ * @param search - the resolved search section, or its projected filters.
+ * @param fetch - the resolved fetch section, or its projected options.
  */
-export function validateConfig(config: TinyfishConfig): void {
+export function validateConfig(
+  search: SearchConfig | undefined,
+  fetch?: FetchConfig,
+): void {
   const prefix = 'dsh-web-tinyfish: '
-  const search = config.search
   if (search !== undefined) {
     for (const [field, list] of [
       ['search.includeDomains', search.includeDomains],
@@ -150,7 +167,6 @@ export function validateConfig(config: TinyfishConfig): void {
       throw new Error(prefix + `search.pubYearMin (${search.pubYearMin}) must not exceed search.pubYearMax (${search.pubYearMax})`)
     }
   }
-  const fetch = config.fetch
   if (fetch !== undefined) {
     for (const [field, list] of [
       ['fetch.includeSelectors', fetch.includeSelectors],

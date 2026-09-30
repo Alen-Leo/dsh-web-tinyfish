@@ -11,7 +11,7 @@ import { WebError } from '@deepseek-ai/dsh-web'
 import type { WebFetchBody, WebFetchProvider, WebFetchRequest, WebFetchResult } from '@deepseek-ai/dsh-web'
 import { TINYFISH_PROVIDER_ID, USER_AGENT, nonEmpty } from './config.ts'
 import { requireApiKey } from './credentials.ts'
-import { bodyReadError, credentialedFetch, mapTinyFishApiError, parseEndpoint } from './endpoint.ts'
+import { assertRequestConfig, bodyReadError, credentialedFetch, mapTinyFishApiError, parseEndpoint } from './endpoint.ts'
 import { validateTargetUrl } from './target-url.ts'
 import type { ResolvedFetchOptions, TinyFishFetchResponse } from './types.ts'
 
@@ -113,6 +113,7 @@ export class TinyFishFetchProvider implements WebFetchProvider {
   async fetch(request: WebFetchRequest, signal?: AbortSignal): Promise<WebFetchResult> {
     const target = validateTargetUrl(request.url)
     const options = this.resolveOptions()
+    assertRequestConfig(undefined, options)
     const endpoint = parseEndpoint(options.baseURL, 'TinyFish fetch')
     const apiKey = await requireApiKey(options.key, 'TinyFish fetch')
     const body: FetchRequestBody = {

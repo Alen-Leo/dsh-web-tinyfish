@@ -18,15 +18,15 @@ provider。独立第三方插件——与 DeepSeek、TinyFish 均无隶属关系
 | 特性 | 行为 |
 | --- | --- |
 | 带凭据的请求**拒绝重定向** | 两个 API 调用都以 `redirect: 'error'` 发出；端点返回 30x 时直接失败，绝不把 `X-API-Key` 转发给其他 origin。用真实重定向服务器做了回归测试。 |
-| 抓取目标预检 | 目标 URL 必须 ≤2048 字符、`http(s)`、无内嵌凭据、非私网地址——在联系 TinyFish 之前本地完成检查。API 端点是运维配置：环回/私网地址（本地 mock、LAN 网关）予以放行，与一方 provider 一致。 |
+| 抓取目标预检 | 目标 URL 必须 ≤2048 字符、`http(s)`、无内嵌凭据、非私网地址。地址字面量在联系 TinyFish 之前离线判定——包括前缀匹配会漏掉的 IPv4-mapped、6to4、NAT64 写法；末尾 DNS 根点（`localhost.`）会先做规范化，无法借它绕过名称检查。TinyFish 服务端还会再次拒绝私网与元数据地址。但*主机名*解析到私网地址无法离线识别。API 端点是运维配置：环回/私网地址（本地 mock、LAN 网关）予以放行，与一方 provider 一致。 |
 | 最小凭据面 | 每次请求解析一个引用（默认 `TINYFISH_API_KEY`）：字面量 `apiKey`（不推荐）→ harness credentials 服务 → launch environment。错误消息只提引用名，绝不出现 key 值。 |
 | 不扩大权限 | bundle 补丁只挂载插件并改写 `web` 行，**从不**全局启用 `tool-web`——哪些 agent 有 web 工具由你的 composition 决定。 |
-| 无安装钩子、单一运行时依赖 | `prepare` 只跑 `tsc`；唯一运行时依赖是 pin 死的 `@deepseek-ai/schemastery`。 |
+| 无安装钩子、两个小运行时依赖 | `prepare` 只跑 `tsc`；运行时依赖是 pin 死的 `@deepseek-ai/schemastery` 与 `ipaddr.js`。 |
 
 ## 快速开始
 
 ```sh
-export TINYFISH_API_KEY="sk-..."   # 从 https://agent.tinyfish.ai/api-keys 获取，key 以 sk- 开头
+export TINYFISH_API_KEY="sk-..."   # 在 https://agent.tinyfish.ai/api-keys 创建
 ```
 
 安装到你的 dsh profile（见 [INSTALL.zh.md](INSTALL.zh.md)），补丁层会把
@@ -55,6 +55,10 @@ export TINYFISH_API_KEY="sk-..."   # 从 https://agent.tinyfish.ai/api-keys 获�
 临时切换连补丁都不用改：`DSH_WEB_SEARCH_PROVIDER=tinyfish dsh …`
 （seam 把这两个环境变量视为 `web` 行字段的等价物）。
 
+所有字段都是可实时生效的配置字段：harness 会把它们投影成 `web-tinyfish`
+这一行的设置表单，两个 provider 每次请求都读取当前值，因此提交的修改无需
+重启即可生效。
+
 完整配置参考：[CONFIG.zh.md](CONFIG.zh.md)。行为与错误映射：[USAGE.zh.md](USAGE.zh.md)。
 
 ## 已知限制
@@ -63,8 +67,8 @@ export TINYFISH_API_KEY="sk-..."   # 从 https://agent.tinyfish.ai/api-keys 获�
   状态；每 URL 失败（`bot_blocked`、`timeout`、`selector_not_matched`……）
   以工具错误的形式呈现。
 - **Search 中 seam 无法承载的字段会被丢弃**：`position`、`site_name`、
-  `publisher`，以及学术结果的 `authors` / `venue` / `pub_year` /
-  `citation_count` / `pdf_url`。Search 没有服务端条数参数，`maxResults`
+  `publisher`，以及学术结果的 `authors` / `venue` / `year` /
+  `cited_by_count` / `pdf_url`。Search 没有服务端条数参数，`maxResults`
   只能本地截断。
 - **未暴露**（seam 没有对应语义）：搜索分页与 `purpose`、fetch 批量
   （`urls[1..10]`）、`format: json`、`links` / `image_links`、highlights、

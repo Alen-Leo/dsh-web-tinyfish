@@ -182,6 +182,26 @@ describe('TinyFishSearchProvider', () => {
     } finally { restore() }
   })
 
+  it('reports a cross-field config violation at the request, not as unavailability', async () => {
+    // `available()` is the seam's selection gate, so it must not turn a bad
+    // section into "registered but unavailable": the request path names the
+    // offending field instead.
+    const { calls, restore } = stubFetch(() => jsonResponse({ results: [] }))
+    try {
+      const provider = new TinyFishSearchProvider(searchOptions({
+        filters: { recencyMinutes: 60, afterDate: '2026-06-01' },
+      }))
+      strictEqual(provider.available(), true)
+      await rejects(
+        provider.search({ query: 'q' }),
+        (error: unknown) => error instanceof WebError
+          && error.code === 'WEB_PROVIDER_ERROR'
+          && error.message.includes('recencyMinutes'),
+      )
+      strictEqual(calls.length, 0)
+    } finally { restore() }
+  })
+
   it('admits a configured private-network endpoint (local mocks, LAN gateways)', async () => {
     const { calls, restore } = stubFetch(() => jsonResponse({ results: [] }))
     try {
