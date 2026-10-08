@@ -6,16 +6,20 @@ Every field is optional and live: the harness projects them into the
 `web-tinyfish` entry's settings form, and both providers read the current
 values per request. Cross-field rules fail loud at plugin load, and at the
 first request when a stored edit left a combination no single field can reject.
+Such a stored combination persists: after a restart the plugin itself fails to
+load, and the settings form can no longer repair it (a failed entry is not
+configurable) — remove the offending field from the profile patch by hand at
+that point.
 
 ## Top level
 
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `apiKey` | string (secret) | — | Literal API key. Avoid committing it; prefer `apiKeyEnv`. |
-| `apiKeyEnv` | string (credential-ref) | `TINYFISH_API_KEY` | Reference resolved per request through the credentials service, then the launch environment. |
+| `apiKeyEnv` | string (credential-ref) | `TINYFISH_API_KEY` | Reference resolved per request through the credentials service, then the launch environment. Must match `/^[A-Za-z_][A-Za-z0-9_]*$/`. |
 | `requestTimeoutMs` | integer ≥100 | `150000` | Whole-request timeout for both APIs. |
-| `search` | object | — | Search-provider tuning (below). |
-| `fetch` | object | — | Fetch-provider tuning (below). |
+| `search` | object | `{}` (inner arrays `[]`) | Search-provider tuning (below). |
+| `fetch` | object | `{}` (inner arrays `[]`) | Fetch-provider tuning (below). |
 
 Endpoint overrides: `TINYFISH_SEARCH_BASE_URL` / `TINYFISH_FETCH_BASE_URL`
 launch-environment variables apply when the corresponding `baseURL` is unset.
@@ -35,8 +39,8 @@ those too when you raise this one.
 | `baseURL` | string | `https://api.search.tinyfish.ai` | — |
 | `location` | string | auto (API) | `location` — country code, e.g. `US`, `GB` |
 | `language` | string | auto (API) | `language` — language code, e.g. `en`, `zh` |
-| `includeDomains` | string[] | — | `include_domains` — bare hostnames, comma-joined |
-| `excludeDomains` | string[] | — | `exclude_domains` |
+| `includeDomains` | string[] | `[]` | `include_domains` — bare hostnames, comma-joined |
+| `excludeDomains` | string[] | `[]` | `exclude_domains` |
 | `recencyMinutes` | 1–5256000 | — | `recency_minutes` — **cannot combine with the date bounds** |
 | `afterDate` | `YYYY-MM-DD` | — | `after_date` — ≤ `beforeDate` |
 | `beforeDate` | `YYYY-MM-DD` | — | `before_date` |
@@ -53,5 +57,5 @@ those too when you raise this one.
 | `ttlSeconds` | integer ≥0 | — | `ttl` — omit = any cache, `0` = live fetch |
 | `perUrlTimeoutMs` | 1–110000 | — | `per_url_timeout_ms` — TinyFish-side per-URL budget; keep below `requestTimeoutMs` |
 | `maxTextBytes` | integer ≥1024 | `524288` | local byte cap; result flags `truncated` when cut |
-| `includeSelectors` | string[1..20] | — | `include_selectors` — CSS selectors, each 1–1000 chars |
-| `excludeSelectors` | string[1..20] | — | `exclude_selectors` |
+| `includeSelectors` | string[1..20] | `[]` | `include_selectors` — CSS selectors, each 1–1000 chars |
+| `excludeSelectors` | string[1..20] | `[]` | `exclude_selectors` |

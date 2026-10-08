@@ -26,6 +26,14 @@ Targets dsh `>=0.2.0-rc.2 <0.3.0` (cordis `>=4.0.4`, schemastery `3.18.4`).
   the field instead of leaving the provider "registered but unavailable", and
   such a request sends nothing. `available()` is now purely the seam's selection
   gate: a resolvable key and a parseable endpoint.
+- `apiKeyEnv` carries `credentialRef`'s name grammar
+  (`/^[A-Za-z_][A-Za-z0-9_]*$/`) as a schema pattern, so an empty or malformed
+  reference fails at write time (load, or a settings-form commit) instead of
+  disabling the provider with an invisible cause.
+- Install docs route through the packed tarball: the npm name
+  `dsh-web-tinyfish` currently belongs to an unrelated third-party package,
+  so a registry `pnpm add` installs the wrong code and publishing under the
+  name would be refused.
 - `requestTimeoutMs` defaults to 150s — TinyFish's documented client guidance,
   and above the 110s per-URL budget `fetch.perUrlTimeoutMs` can already set.
   Docs note that `tool-web`'s `fetchTimeoutMs` / `searchTimeoutMs` bound a call

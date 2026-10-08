@@ -9,21 +9,19 @@ English | [中文](INSTALL.zh.md)
 
 ## Steps
 
-1. Install the package into the profile directory:
-
-   ```sh
-   cd "$DSH_HOME/profiles/<name>"
-   pnpm add dsh-web-tinyfish
-   ```
-
-   Until the package is published, install from a checkout via a packed
-   tarball, not the bare directory:
+1. Install the package into the profile directory from a packed tarball:
 
    ```sh
    pnpm pack --pack-destination ~/.dsh/tarballs   # durable path — see note below
    cd "$DSH_HOME/profiles/<name>"
    pnpm add ~/.dsh/tarballs/dsh-web-tinyfish-<version>.tgz
    ```
+
+   > **Do not `pnpm add dsh-web-tinyfish` from a registry.** The npm name
+   > currently belongs to an unrelated third-party package, so that command
+   > installs the wrong code — and `npm publish` under this name would be
+   > refused. Use the tarball until this plugin is published under its final
+   > (scoped) name.
 
    Pack into a directory that survives reboots: the `file:` dependency spec
    pnpm writes keeps pointing at the tarball, so a path the OS reclaims
@@ -71,8 +69,9 @@ English | [中文](INSTALL.zh.md)
 ## Updating / removing
 
 ```sh
+pnpm pack --pack-destination ~/.dsh/tarballs   # update: re-pack in the checkout first
 cd "$DSH_HOME/profiles/<name>"
-pnpm update dsh-web-tinyfish     # update
+pnpm add ~/.dsh/tarballs/dsh-web-tinyfish-<version>.tgz   # update
 pnpm remove dsh-web-tinyfish     # remove (also drop the bundles entry)
 ```
 

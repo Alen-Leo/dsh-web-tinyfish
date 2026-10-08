@@ -14,6 +14,9 @@ export const TINYFISH_PROVIDER_ID = 'tinyfish'
 /** Credential reference resolved per request when `apiKeyEnv` is unset. */
 export const DEFAULT_API_KEY_ENV = 'TINYFISH_API_KEY'
 
+/** Name grammar of a harness credential reference (`credentialRef`). */
+const CREDENTIAL_REF_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/
+
 /** Launch-environment variable overriding the search endpoint base. */
 export const SEARCH_BASE_URL_ENV = 'TINYFISH_SEARCH_BASE_URL'
 
@@ -65,7 +68,12 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
  */
 export const Config = z.object({
   apiKey: z.string().role('secret').volatile(),
-  apiKeyEnv: z.string().role('credential-ref').default(DEFAULT_API_KEY_ENV).volatile(),
+  // The pattern mirrors `credentialRef`'s name grammar: an edit the reference
+  // builder would reject fails at write time (plugin load, or a settings-form
+  // commit) instead of disabling the provider with an invisible cause — an
+  // empty or malformed reference throws inside option projection, which
+  // `available()` swallows into a generic "unusable".
+  apiKeyEnv: z.string().role('credential-ref').pattern(CREDENTIAL_REF_PATTERN).default(DEFAULT_API_KEY_ENV).volatile(),
   requestTimeoutMs: z.number().step(1).min(100).default(DEFAULT_REQUEST_TIMEOUT_MS).volatile(),
   search: z.object({
     baseURL: z.string(),

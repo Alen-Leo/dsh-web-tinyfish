@@ -9,20 +9,18 @@
 
 ## 步骤
 
-1. 把包装进 profile 目录：
-
-   ```sh
-   cd "$DSH_HOME/profiles/<name>"
-   pnpm add dsh-web-tinyfish
-   ```
-
-   包尚未发布到 npm 之前，从本地检出经 tarball 安装（不要直接指目录）：
+1. 从打包的 tarball 把包装进 profile 目录：
 
    ```sh
    pnpm pack --pack-destination ~/.dsh/tarballs   # 持久路径——见下方说明
    cd "$DSH_HOME/profiles/<name>"
    pnpm add ~/.dsh/tarballs/dsh-web-tinyfish-<version>.tgz
    ```
+
+   > **不要从 registry 执行 `pnpm add dsh-web-tinyfish`。** npm 上该名称目前
+   > 属于一个无关的第三方包，那条命令装到的是错误的代码——在本名称下
+   > `npm publish` 也会被拒绝。在本插件以最终（scoped）名称发布之前，请
+   > 一律使用 tarball。
 
    务必 pack 进重启后仍然存在的目录：pnpm 写下的 `file:` 依赖规格会一直
    指向该 tarball，路径被系统回收（如 `/tmp`）后 profile 里的
@@ -66,8 +64,9 @@
 ## 更新 / 移除
 
 ```sh
+pnpm pack --pack-destination ~/.dsh/tarballs   # 更新前先在插件检出里重新打包
 cd "$DSH_HOME/profiles/<name>"
-pnpm update dsh-web-tinyfish     # 更新
+pnpm add ~/.dsh/tarballs/dsh-web-tinyfish-<version>.tgz   # 更新
 pnpm remove dsh-web-tinyfish     # 移除（同时删掉 bundles 条目）
 ```
 

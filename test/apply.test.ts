@@ -125,6 +125,8 @@ describe('apply', () => {
   })
 
   it('rejects a misconfigured section at load', async () => {
+    await rejects(boot({ apiKeyEnv: '' }), /match regexp/)
+    await rejects(boot({ apiKeyEnv: '1-BAD-NAME' }), /match regexp/)
     await rejects(boot({ search: { recencyMinutes: 60, afterDate: '2026-06-01' } }), /recencyMinutes/)
     await rejects(boot({ search: { afterDate: '2026/06/01' } }), /YYYY-MM-DD/)
     await rejects(boot({ search: { pubYearMin: 2020, domainType: 'news' } }), /research_paper/)
