@@ -26,15 +26,38 @@ and the [TinyFish API docs](https://docs.tinyfish.ai).
 
 ## Quick start
 
-```sh
-export TINYFISH_API_KEY="sk-..."   # create one at https://agent.tinyfish.ai/api-keys
+Create a key at https://agent.tinyfish.ai/api-keys, then paste this paragraph to
+an AI agent running on your machine (a dsh session, Claude Code, Cursor, …)
+with `<name>` replaced by your profile name:
+
+```text
+Install the dsh-web-tinyfish plugin into my dsh profile "<name>" and verify it:
+
+1. Ask me for a TinyFish API key (created at https://agent.tinyfish.ai/api-keys, starts with sk-).
+2. Clone https://github.com/Alen-Leo/dsh-web-tinyfish and run `pnpm pack --pack-destination ~/.dsh/tarballs` in the checkout.
+3. In ~/.dsh/profiles/<name> run `pnpm add ~/.dsh/tarballs/dsh-web-tinyfish-<version>.tgz`.
+   Do not `pnpm add dsh-web-tinyfish` from a registry — that npm name belongs to an unrelated third-party package.
+4. Add "dsh-web-tinyfish" to the end of the dsh.profile.bundles list in ~/.dsh/profiles/<name>/package.json.
+5. Append to ~/.dsh/profiles/<name>/cordis.patch.yml (if a web-tinyfish row already exists, merge apiKey into its config instead of adding a second row):
+   - id: web-tinyfish
+     config:
+       apiKey: "<my TinyFish key>"
+6. Restart the profile, then run a web_search query for the TinyFish docs and confirm results come back.
 ```
 
-Install into your dsh profile (see [INSTALL.md](INSTALL.md)) and the patch layer
-retargets `web_search` at TinyFish:
+Prefer doing it yourself? The manual steps are in [INSTALL.md](INSTALL.md).
+Either way no environment variable is needed afterwards:
+
+```sh
+dsh --profile <name> "use web_search to find the TinyFish docs and summarize"
+```
+
+With the plugin installed, the patch layer retargets `web_search` and
+`web_fetch` at TinyFish; optional per-deployment tuning goes in the profile
+patch:
 
 ```yaml
-# $DSH_HOME/profiles/<name>/cordis.patch.yml — optional per-deployment tuning
+# ~/.dsh/profiles/<name>/cordis.patch.yml — optional per-deployment tuning
 - id: web-tinyfish
   config:
     search:
@@ -44,18 +67,21 @@ retargets `web_search` at TinyFish:
       format: markdown
 ```
 
-To also route `web_fetch` through TinyFish, override the `web` row:
+To keep `web_fetch` on the fast local HTTP provider (plain GET, no rendering,
+no rate limit) instead of TinyFish's real-browser fetch, override the `web`
+row:
 
 ```yaml
 - id: web
   config:
     searchProvider: tinyfish
-    fetchProvider: tinyfish
+    fetchProvider: http
 ```
 
 No patch at all is needed for a one-off switch:
-`DSH_WEB_SEARCH_PROVIDER=tinyfish dsh …` (the seam treats the env vars as
-equivalents of the row fields).
+`DSH_WEB_SEARCH_PROVIDER=tinyfish dsh …` (PowerShell: set
+`$env:DSH_WEB_SEARCH_PROVIDER = 'tinyfish'` first — the seam treats the env
+vars as equivalents of the row fields).
 
 Every field is a live configuration field: the harness projects them into the
 `web-tinyfish` entry's settings form, and both providers read the current

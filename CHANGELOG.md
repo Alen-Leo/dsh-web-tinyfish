@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.0
+
+- The bundle patch now routes `web_fetch` through TinyFish as well
+  (`fetchProvider: tinyfish`), so both web tools run on the plugin out of the
+  box — its rendered-and-extracted markdown serves agents far better than the
+  raw HTML the local provider returns, at a typical 1–2s per fetch. Keep
+  `web_fetch` on the plain local HTTP provider by overriding the `web` row
+  with `fetchProvider: http`; README documents the override.
+- Docs: reworked to the standard shape. README quick start and INSTALL open
+  with a paste-to-an-AI-agent install paragraph; INSTALL splits into that
+  automated route and a manual route whose steps each use one cross-platform
+  command block (bash and PowerShell share it), with platform-specific
+  snippets only for writing `config.apiKey` into the profile patch. Key
+  alternatives (env var incl. `.env` with the GUI/`setx` caveat, credentials
+  service, `apiKeyEnv`) collapsed into one short section, and paths use the
+  concrete default `~/.dsh` throughout.
+
 ## 0.2.0
 
 Targets dsh `>=0.2.0-rc.2 <0.3.0` (cordis `>=4.0.4`, schemastery `3.18.4`).

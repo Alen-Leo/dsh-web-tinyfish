@@ -11,15 +11,15 @@
 #    field is declared volatile, so the same values are editable in the plugin's
 #    settings form without a restart.
 #
-# 2. `web` — points ctx.web's search at this provider. The dsh-base bundle
-#    pins `searchProvider: deepseek-official` and `fetchProvider: http` on the
-#    `web` row, so merely registering a provider would leave web_search on the
-#    DeepSeek backend. A bundle patch replaces the targeted row's whole
+# 2. `web` — points ctx.web at this provider. The dsh-base bundle pins
+#    `searchProvider: deepseek-official` and `fetchProvider: http` on the
+#    `web` row, so merely registering a provider would leave both tools on
+#    the built-in backends. A bundle patch replaces the targeted row's whole
 #    `config` (never a deep merge), so this row restates both keys: search
-#    moves to TinyFish, fetch stays on the anonymous local HTTP provider.
-#    Change `fetchProvider` to `tinyfish` to also route web_fetch through
-#    TinyFish's browser rendering; leave it as `http` to keep the local
-#    provider. Later layers can still override this row by id.
+#    and fetch both move to TinyFish (real-browser rendering, extracted
+#    markdown — typically 1–2s per fetch). To keep `web_fetch` on the fast
+#    local HTTP provider instead, override this row with
+#    `fetchProvider: http`. Later layers can still override this row by id.
 #
 # This patch deliberately does NOT touch the `tool-web` row: whether the
 # model-facing web tools exist, and for which presets, belongs to the host
@@ -58,4 +58,4 @@
 - id: web
   config:
     searchProvider: tinyfish
-    fetchProvider: http
+    fetchProvider: tinyfish

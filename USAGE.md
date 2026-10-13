@@ -39,6 +39,9 @@ is no separate tool surface.
 ## Verifying the installation
 
 ```sh
-export TINYFISH_API_KEY="sk-..."
 dsh --profile <name> "use web_search to find the TinyFish docs, then web_fetch https://docs.tinyfish.ai/fetch-api and summarize"
 ```
+
+Works as long as the key is configured (profile patch or environment — see
+[INSTALL.md](INSTALL.md)); with no key at all, `web_search` fails with
+`WEB_PROVIDER_CREDENTIAL_MISSING`.

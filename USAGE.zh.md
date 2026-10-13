@@ -38,6 +38,9 @@
 ## 验证安装
 
 ```sh
-export TINYFISH_API_KEY="sk-..."
 dsh --profile <name> "用 web_search 找 TinyFish 文档，再 web_fetch https://docs.tinyfish.ai/fetch-api 并总结"
 ```
+
+只要 key 已配置（profile 补丁或环境变量——见 [INSTALL.zh.md](INSTALL.zh.md)）
+即可运行；完全没有 key 时 `web_search` 会以 `WEB_PROVIDER_CREDENTIAL_MISSING`
+失败。

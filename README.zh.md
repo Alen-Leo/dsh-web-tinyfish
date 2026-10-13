@@ -25,15 +25,37 @@ provider。独立第三方插件——与 DeepSeek、TinyFish 均无隶属关系
 
 ## 快速开始
 
-```sh
-export TINYFISH_API_KEY="sk-..."   # 在 https://agent.tinyfish.ai/api-keys 创建
+在 https://agent.tinyfish.ai/api-keys 创建一个 key，然后把下面这段话粘贴给
+在你机器上运行的 AI（dsh 会话、Claude Code、Cursor……），先把 `<name>`
+换成你的 profile 名：
+
+```text
+把 dsh-web-tinyfish 插件安装进我的 dsh profile "<name>" 并验证：
+
+1. 向我要一个 TinyFish API key（在 https://agent.tinyfish.ai/api-keys 创建，sk- 开头）。
+2. 克隆 https://github.com/Alen-Leo/dsh-web-tinyfish，在检出目录执行 pnpm pack --pack-destination ~/.dsh/tarballs。
+3. 进入 ~/.dsh/profiles/<name>，执行 pnpm add ~/.dsh/tarballs/dsh-web-tinyfish-<version>.tgz。
+   不要从 registry 安装 dsh-web-tinyfish——npm 上这个名字属于无关的第三方包。
+4. 在 ~/.dsh/profiles/<name>/package.json 的 dsh.profile.bundles 列表末尾加上 "dsh-web-tinyfish"。
+5. 在 ~/.dsh/profiles/<name>/cordis.patch.yml 末尾追加下面三行（若已有 web-tinyfish 行，把 apiKey 并入该行的 config，不要追加第二个同 id 行）：
+   - id: web-tinyfish
+     config:
+       apiKey: "<我的 TinyFish key>"
+6. 重启 profile，跑一条 web_search 查询 TinyFish 文档，确认有结果返回。
 ```
 
-安装到你的 dsh profile（见 [INSTALL.zh.md](INSTALL.zh.md)），补丁层会把
-`web_search` 切到 TinyFish：
+想自己动手？手动步骤见 [INSTALL.zh.md](INSTALL.zh.md)。无论哪种方式，
+装好后都不需要设置任何环境变量：
+
+```sh
+dsh --profile <name> "用 web_search 找 TinyFish 文档并总结"
+```
+
+插件装好后，补丁层会把 `web_search` 和 `web_fetch` 都切到 TinyFish；可选的
+部署级调优写在 profile 补丁里：
 
 ```yaml
-# $DSH_HOME/profiles/<name>/cordis.patch.yml —— 可选的部署级调优
+# ~/.dsh/profiles/<name>/cordis.patch.yml —— 可选的部署级调优
 - id: web-tinyfish
   config:
     search:
@@ -43,17 +65,19 @@ export TINYFISH_API_KEY="sk-..."   # 在 https://agent.tinyfish.ai/api-keys 创�
       format: markdown
 ```
 
-想让 `web_fetch` 也走 TinyFish，改写 `web` 行即可：
+想让 `web_fetch` 改回快速的本地 HTTP provider（裸 GET、无渲染、无限流），
+改写 `web` 行即可：
 
 ```yaml
 - id: web
   config:
     searchProvider: tinyfish
-    fetchProvider: tinyfish
+    fetchProvider: http
 ```
 
 临时切换连补丁都不用改：`DSH_WEB_SEARCH_PROVIDER=tinyfish dsh …`
-（seam 把这两个环境变量视为 `web` 行字段的等价物）。
+（PowerShell 需先 `$env:DSH_WEB_SEARCH_PROVIDER = 'tinyfish'`；seam 把这两个
+环境变量视为 `web` 行字段的等价物）。
 
 所有字段都是可实时生效的配置字段：harness 会把它们投影成 `web-tinyfish`
 这一行的设置表单，两个 provider 每次请求都读取当前值，因此提交的修改无需

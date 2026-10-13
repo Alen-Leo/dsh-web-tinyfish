@@ -33,7 +33,7 @@ describe('cordis.patch.yml', () => {
   it('restates the web row with exactly both provider keys', () => {
     deepStrictEqual(patch[1], {
       id: 'web',
-      config: { searchProvider: 'tinyfish', fetchProvider: 'http' },
+      config: { searchProvider: 'tinyfish', fetchProvider: 'tinyfish' },
     })
   })
 
