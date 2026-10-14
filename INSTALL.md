@@ -46,6 +46,10 @@ Install the dsh-web-tinyfish plugin into my dsh profile "<name>" and verify it:
    > into the checkout, whose dev `node_modules` shadows the peers and breaks
    > the plugin's error classes.
 
+   No checkout handy? Each tagged release attaches the same tarball to the
+   [GitHub Releases](https://github.com/Alen-Leo/dsh-web-tinyfish/releases)
+   page — download it into `~/.dsh/tarballs` and skip the pack step.
+
    Pack into a directory that survives reboots: the `file:` dependency spec
    pnpm writes keeps pointing at the tarball, so a path the OS reclaims
    (`/tmp`) breaks later `pnpm install` / `pnpm update` in the profile.

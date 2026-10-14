@@ -16,6 +16,12 @@
   alternatives (env var incl. `.env` with the GUI/`setx` caveat, credentials
   service, `apiKeyEnv`) collapsed into one short section, and paths use the
   concrete default `~/.dsh` throughout.
+- Releases ship as GitHub Releases with the packed tarball attached — this
+  project does not publish to npm (the name belongs to an unrelated
+  third-party package). The tag-triggered `npm publish` workflow, which
+  failed on the 0.3.0 tag, is replaced by one that typechecks, tests,
+  builds, packs, and attaches the tarball to a GitHub Release; INSTALL
+  points at the Releases page as the no-clone way to get the tarball.
 
 ## 0.2.0
 

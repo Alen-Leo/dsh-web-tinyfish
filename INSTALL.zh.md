@@ -44,6 +44,10 @@
    > 指回检出的 `link:` 安装，检出的 dev `node_modules` 会遮蔽 peer 副本，
    > 破坏插件的错误类身份。请用 tarball。
 
+   手头没有检出？每个打标的 release 都会把同一份 tarball 附在
+   [GitHub Releases](https://github.com/Alen-Leo/dsh-web-tinyfish/releases)
+   页面——下载后放进 `~/.dsh/tarballs`，即可跳过 pack 一步。
+
    务必 pack 进重启后仍然存在的目录：pnpm 写下的 `file:` 依赖规格会一直
    指向该 tarball，路径被系统回收（如 `/tmp`）后 profile 里的
    `pnpm install` / `pnpm update` 就会失败。
