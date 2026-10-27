@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.1
+
+- Adapted to dsh `0.2.1-rc.3` (the Desktop runtime): development and test
+  dependencies now pin `@deepseek-ai/dsh-web`, `@deepseek-ai/dsh-credentials`,
+  and `@deepseek-ai/dsh-launch-environment` at `0.2.1-rc.3` with
+  `@deepseek-ai/cordis` at `4.0.5`, so typecheck and tests run against the
+  exact package versions the runtime ships. The provider-facing API surface
+  (`WebError`, `WebSearchProvider`, `WebFetchProvider`, `credentialRef`,
+  `launchEnvironmentOf`) is unchanged between `0.2.0-rc.2` and `0.2.1-rc.3`;
+  no plugin code change was needed.
+- `@deepseek-ai/schemastery` moves `3.18.4` → `3.18.5`, matching the runtime
+  and `dsh-web@0.2.1-rc.3`'s own `~3.18.5` constraint, so the Config schema is
+  built with the same Schemastery the host validates it against.
+- Engine and peer ranges stay `>=0.2.0-rc.2 <0.3.0` (cordis `>=4.0.4`): they
+  already admit `0.2.1-rc.3`, and dsh's compatibility check evaluates them
+  with prereleases participating. `minimumReleaseAgeExclude` entries move to
+  `0.2.1-rc.3`.
+
 ## 0.3.0
 
 - The bundle patch now routes `web_fetch` through TinyFish as well
