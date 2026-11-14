@@ -12,6 +12,7 @@ import type { WebFetchBody, WebFetchProvider, WebFetchRequest, WebFetchResult } 
 import { TINYFISH_PROVIDER_ID, USER_AGENT, nonEmpty } from './config.ts'
 import { requireApiKey } from './credentials.ts'
 import { assertRequestConfig, bodyReadError, credentialedFetch, mapTinyFishApiError, parseEndpoint } from './endpoint.ts'
+import { FETCH_DESCRIPTION, PROVIDER_TITLE } from './meta.ts'
 import { validateTargetUrl } from './target-url.ts'
 import type { ResolvedFetchOptions, TinyFishFetchResponse } from './types.ts'
 
@@ -62,6 +63,9 @@ export function mapTinyFishFetchResponse(
   if (failure !== undefined) {
     const code = nonEmpty(failure.error) ? failure.error : 'fetch_failed'
     const extra: string[] = []
+    if (failure.status !== undefined && failure.status !== null) {
+      extra.push(`HTTP ${failure.status}`)
+    }
     if (failure.unmatched_selectors !== undefined && failure.unmatched_selectors.length > 0) {
       extra.push(`unmatched selectors: ${failure.unmatched_selectors.join(', ')}`)
     }
@@ -89,6 +93,8 @@ export function mapTinyFishFetchResponse(
 /** The TinyFish fetch provider registered as `tinyfish`. */
 export class TinyFishFetchProvider implements WebFetchProvider {
   readonly id = TINYFISH_PROVIDER_ID
+  readonly title = PROVIDER_TITLE
+  readonly description = FETCH_DESCRIPTION
   private readonly resolveOptions: () => ResolvedFetchOptions
 
   /**
@@ -110,10 +116,25 @@ export class TinyFishFetchProvider implements WebFetchProvider {
     }
   }
 
+  /**
+   * Whether a fetch has a credential to send: resolves the whole key chain
+   * (literal key, credentials service, launch environment — local reads, no
+   * network) and reports whether it yields a key. A configuration failure
+   * answers ready, so `fetch()` reports it as a structured `WebError`.
+   */
+  async ready(_llmProvider: string | undefined): Promise<boolean> {
+    try {
+      const key = await this.resolveOptions().key.resolve()
+      return key !== undefined && key.trim().length > 0
+    } catch {
+      return true
+    }
+  }
+
   async fetch(request: WebFetchRequest, signal?: AbortSignal): Promise<WebFetchResult> {
     const target = validateTargetUrl(request.url)
     const options = this.resolveOptions()
-    assertRequestConfig(undefined, options)
+    assertRequestConfig(undefined, options, options.requestTimeoutMs)
     const endpoint = parseEndpoint(options.baseURL, 'TinyFish fetch')
     const apiKey = await requireApiKey(options.key, 'TinyFish fetch')
     const body: FetchRequestBody = {

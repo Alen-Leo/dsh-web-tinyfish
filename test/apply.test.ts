@@ -81,6 +81,38 @@ describe('apply', () => {
     }
   })
 
+  it('resolves the key through the harness credentials service', async () => {
+    const previous = process.env.TINYFISH_API_KEY
+    delete process.env.TINYFISH_API_KEY
+    const { calls, restore } = stubFetch(() => jsonResponse({ results: [] }))
+    stubs.push(restore)
+    try {
+      const ctx = new Context()
+      await ctx.plugin(WebRuntime)
+      ctx.provide('credentials', { resolve: async () => ({ value: 'svc-key' }) })
+      await ctx.plugin(webTinyfish, { search: { baseURL: 'https://search.example.test' } })
+      await ctx.web.search({ query: 'q' })
+      strictEqual(calls[0]!.headers['x-api-key'], 'svc-key')
+    } finally {
+      if (previous !== undefined) process.env.TINYFISH_API_KEY = previous
+    }
+  })
+
+  it('takes the endpoint base from the launch-environment override', async () => {
+    const previous = process.env.TINYFISH_SEARCH_BASE_URL
+    process.env.TINYFISH_SEARCH_BASE_URL = 'https://search-env.example.test'
+    const { calls, restore } = stubFetch(() => jsonResponse({ results: [] }))
+    stubs.push(restore)
+    try {
+      const { ctx } = await boot({ apiKey: 'k' })
+      await ctx.web.search({ query: 'q' })
+      strictEqual(new URL(calls[0]!.url).host, 'search-env.example.test')
+    } finally {
+      if (previous === undefined) delete process.env.TINYFISH_SEARCH_BASE_URL
+      else process.env.TINYFISH_SEARCH_BASE_URL = previous
+    }
+  })
+
   it('trims padded config values before forwarding them', async () => {
     const { calls, restore } = stubFetch(() => jsonResponse({ results: [] }))
     stubs.push(restore)
@@ -130,7 +162,16 @@ describe('apply', () => {
     await rejects(boot({ search: { recencyMinutes: 60, afterDate: '2026-06-01' } }), /recencyMinutes/)
     await rejects(boot({ search: { afterDate: '2026/06/01' } }), /YYYY-MM-DD/)
     await rejects(boot({ search: { pubYearMin: 2020, domainType: 'news' } }), /research_paper/)
+    await rejects(boot({ search: { domainType: 'research_paper', recencyMinutes: 60 } }), /research_paper/)
     await rejects(boot({ fetch: { includeSelectors: Array.from({ length: 21 }, () => 'div') } }), /at most 20/)
+    // A per-URL budget the whole-request timeout expires first can never act.
+    await rejects(
+      boot({ apiKey: 'k', requestTimeoutMs: 5000, fetch: { perUrlTimeoutMs: 5000 } }),
+      /can never take effect/,
+    )
+    // A malformed endpoint base fails loud at load, not as silent unavailability.
+    await rejects(boot({ apiKey: 'k', search: { baseURL: 'not a url' } }), /not a valid URL/)
+    await rejects(boot({ apiKey: 'k', fetch: { baseURL: 'ftp://fetch.example.test' } }), /http or https/)
   })
 
   it('fails loud on a duplicate provider registration', async () => {

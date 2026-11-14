@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.4.0
+
+- Adapted to dsh `0.2.2-rc.3` (the Desktop runtime): development and test
+  dependencies now pin `@deepseek-ai/dsh-web`, `@deepseek-ai/dsh-credentials`,
+  and `@deepseek-ai/dsh-launch-environment` at `0.2.2-rc.3` with
+  `@deepseek-ai/cordis` at `4.1.0` and `@deepseek-ai/dsh-package-manifest` at
+  `0.2.2-rc.3` (type-only), matching what the runtime ships. The provider-facing
+  seam changes in 0.2.2 are additive, so no existing behavior changed.
+- `@deepseek-ai/schemastery` moves `3.18.5` → `3.19.0` in `dependencies`,
+  matching the runtime and `dsh-web@0.2.2-rc.3`'s own `~3.19.0` constraint.
+- Both providers now populate the picker surface 0.2.2 added to the seam:
+  `title` ("TinyFish") and a localized `description` (en/zh/ja/es/fr/de/ru/pt)
+  that `ctx.web.listProviders()` returns to the Web provider pickers, and the
+  optional `ready(llmProvider)` gate — an async, network-free answer to
+  "would this provider's next call carry a credential?" that resolves the full
+  key chain (literal key → credentials service → launch environment). A broken
+  section answers ready so the request path keeps reporting the structured
+  `WebError`; a missing key answers not-ready so hosts can withhold their web
+  tools with a credential hint instead of failing the first call.
+- Engine and peer ranges stay `>=0.2.0-rc.2 <0.3.0` (cordis `>=4.0.4`): they
+  already admit `0.2.2-rc.3` and cordis `4.1.0`. `minimumReleaseAgeExclude`
+  entries move to `0.2.2-rc.3` (plus `dsh-package-manifest`).
+- Review hardening applied with the adaptation:
+  - `search.domainType: "research_paper"` now rejects the date and freshness
+    filters (`recencyMinutes`/`afterDate`/`beforeDate`) the Search API does not
+    support on the academic corpus, pointing at `pubYearMin`/`pubYearMax`
+    instead of failing silently server-side.
+  - A malformed `search.baseURL`/`fetch.baseURL` (or a malformed
+    `TINYFISH_*_BASE_URL` override) now fails loud at plugin load with the
+    field-naming `parseEndpoint` diagnosis, instead of degrading into a silent
+    "registered but unavailable".
+  - `fetch.perUrlTimeoutMs >= requestTimeoutMs` — a per-URL budget the
+    whole-request timeout expires first — is rejected at load and per request.
+  - Per-URL fetch failures now carry the origin HTTP status (`HTTP 404`) next
+    to TinyFish's error code.
+  - A failing credentials-service read is mapped onto `WEB_PROVIDER_ERROR`
+    naming the reference, instead of escaping the seam's error taxonomy.
+  - Tests cover the two previously untested documented paths: endpoint bases
+    taken from the `TINYFISH_SEARCH_BASE_URL` launch-environment override, and
+    key resolution through the harness credentials service.
+
 ## 0.3.1
 
 - Adapted to dsh `0.2.1-rc.3` (the Desktop runtime): development and test

@@ -4,7 +4,7 @@
  * @module dsh-web-tinyfish/tests/fetch
  */
 
-import { deepStrictEqual, rejects, strictEqual } from 'node:assert'
+import { deepStrictEqual, ok, rejects, strictEqual } from 'node:assert'
 import { describe, it } from 'node:test'
 import { WebError } from '@deepseek-ai/dsh-web'
 import { TinyFishFetchProvider, capTextBytes, mapTinyFishFetchResponse } from '../src/fetch.ts'
@@ -117,7 +117,7 @@ describe('TinyFishFetchProvider', () => {
     }))
     try {
       const result = await new TinyFishFetchProvider(fetchOptions({
-        format: 'html', ttlSeconds: 3600, perUrlTimeoutMs: 45000,
+        format: 'html', ttlSeconds: 3600, perUrlTimeoutMs: 45000, requestTimeoutMs: 60000,
         includeSelectors: ['main, article'], excludeSelectors: ['nav'],
       })).fetch({ url: 'https://example.com/page' })
       const body = JSON.parse(String(calls[0]!.init.body)) as Record<string, unknown>
@@ -171,6 +171,19 @@ describe('TinyFishFetchProvider', () => {
       if (!error.message.includes('#price') || !error.message.includes('[id="price"]')) {
         throw new Error(`message misses selector hints: ${error.message}`)
       }
+    }
+  })
+
+  it('carries the per-URL HTTP status into the failure message', () => {
+    try {
+      mapTinyFishFetchResponse({
+        results: [],
+        errors: [{ url: 'https://example.com/gone', error: 'page_not_found', status: 404 }],
+      }, 'https://example.com/gone', 'markdown', 1024)
+      throw new Error('expected mapTinyFishFetchResponse to throw')
+    } catch (error) {
+      if (!(error instanceof WebError)) throw error
+      if (!error.message.includes('HTTP 404')) throw new Error(error.message)
     }
   })
 
@@ -249,5 +262,26 @@ describe('TinyFishFetchProvider', () => {
       strictEqual(new URL(calls[0]!.url).host, '192.168.1.5')
       strictEqual(result.body.kind, 'text')
     } finally { restore() }
+  })
+
+  it('carries the picker metadata of the 0.2.2 provider surface', () => {
+    const provider = new TinyFishFetchProvider(fetchOptions())
+    strictEqual(provider.title, 'TinyFish')
+    const description = provider.description
+    ok(typeof description === 'object' && description !== null)
+    const localized = description as Record<string, string>
+    strictEqual(typeof localized.en, 'string')
+    strictEqual(typeof localized.zh, 'string')
+  })
+
+  it('answers ready() from the resolved credential chain', async () => {
+    strictEqual(await new TinyFishFetchProvider(fetchOptions()).ready(undefined), true)
+    strictEqual(await new TinyFishFetchProvider(fetchOptions({ key: keySource(undefined) })).ready(undefined), false)
+    // Whitespace-only keys fail the same trim every request path applies.
+    strictEqual(await new TinyFishFetchProvider(fetchOptions({ key: keySource('  \n') })).ready(undefined), false)
+    // An unreadable section stays ready: fetch() reports the failure loudly.
+    const broken = new TinyFishFetchProvider(() => { throw new Error('bad section') })
+    strictEqual(broken.available(), false)
+    strictEqual(await broken.ready(undefined), true)
   })
 })

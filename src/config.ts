@@ -136,10 +136,13 @@ function selectorListProblem(selectors: readonly string[] | undefined, field: st
  * date bound, say) still has to be caught here at its first use.
  * @param search - the resolved search section, or its projected filters.
  * @param fetch - the resolved fetch section, or its projected options.
+ * @param requestTimeoutMs - the resolved whole-request timeout, when known,
+ *   to cross-check `fetch.perUrlTimeoutMs` against.
  */
 export function validateConfig(
   search: SearchConfig | undefined,
   fetch?: FetchConfig,
+  requestTimeoutMs?: number,
 ): void {
   const prefix = 'dsh-web-tinyfish: '
   if (search !== undefined) {
@@ -166,6 +169,13 @@ export function validateConfig(
       && search.afterDate > search.beforeDate) {
       throw new Error(prefix + `search.afterDate (${search.afterDate}) must not exceed search.beforeDate (${search.beforeDate})`)
     }
+    if (search.domainType === 'research_paper'
+      && (search.recencyMinutes !== undefined || search.afterDate !== undefined || search.beforeDate !== undefined)) {
+      // The Search API rejects (or ignores) the date filters on the academic
+      // corpus; its only freshness controls there are the publication years.
+      throw new Error(prefix + 'search.recencyMinutes, search.afterDate, and search.beforeDate are not supported '
+        + 'with search.domainType "research_paper"; use search.pubYearMin and search.pubYearMax')
+    }
     if ((search.pubYearMin !== undefined || search.pubYearMax !== undefined)
       && search.domainType !== 'research_paper') {
       throw new Error(prefix + 'search.pubYearMin and search.pubYearMax require search.domainType "research_paper"')
@@ -182,6 +192,13 @@ export function validateConfig(
     ] as const) {
       const problem = selectorListProblem(list, field)
       if (problem !== undefined) throw new Error(prefix + problem)
+    }
+    if (fetch.perUrlTimeoutMs !== undefined && requestTimeoutMs !== undefined
+      && fetch.perUrlTimeoutMs >= requestTimeoutMs) {
+      // The whole-request budget expires first, so the per-URL budget the
+      // operator asked for can never take effect.
+      throw new Error(prefix + `fetch.perUrlTimeoutMs (${fetch.perUrlTimeoutMs}) must be below requestTimeoutMs `
+        + `(${requestTimeoutMs}), or it can never take effect`)
     }
   }
 }

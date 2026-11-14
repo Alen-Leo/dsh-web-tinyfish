@@ -18,10 +18,11 @@ import type { FetchConfig, SearchConfig, TinyFishApiError } from './types.ts'
  * reason; the message this throws names the offending field instead.
  * @param search - the request's resolved search filters, when one is running.
  * @param fetch - the request's resolved fetch options, when one is running.
+ * @param requestTimeoutMs - the request's whole-request timeout, when known.
  */
-export function assertRequestConfig(search: SearchConfig | undefined, fetch?: FetchConfig): void {
+export function assertRequestConfig(search: SearchConfig | undefined, fetch?: FetchConfig, requestTimeoutMs?: number): void {
   try {
-    validateConfig(search, fetch)
+    validateConfig(search, fetch, requestTimeoutMs)
   } catch (error: unknown) {
     throw new WebError(
       error instanceof Error ? error.message : String(error),

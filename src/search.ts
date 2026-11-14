@@ -10,6 +10,7 @@ import type {
 import { TINYFISH_PROVIDER_ID, USER_AGENT, nonEmpty } from './config.ts'
 import { requireApiKey } from './credentials.ts'
 import { assertRequestConfig, bodyReadError, credentialedFetch, mapTinyFishApiError, parseEndpoint } from './endpoint.ts'
+import { PROVIDER_TITLE, SEARCH_DESCRIPTION } from './meta.ts'
 import type { ResolvedSearchOptions, TinyFishSearchResponse } from './types.ts'
 
 /**
@@ -50,6 +51,8 @@ export function mapTinyFishSearchResponse(
 /** The TinyFish search provider registered as `tinyfish`. */
 export class TinyFishSearchProvider implements WebSearchProvider {
   readonly id = TINYFISH_PROVIDER_ID
+  readonly title = PROVIDER_TITLE
+  readonly description = SEARCH_DESCRIPTION
   private readonly resolveOptions: () => ResolvedSearchOptions
 
   /**
@@ -68,6 +71,21 @@ export class TinyFishSearchProvider implements WebSearchProvider {
       return true
     } catch {
       return false
+    }
+  }
+
+  /**
+   * Whether a search has a credential to send: resolves the whole key chain
+   * (literal key, credentials service, launch environment — local reads, no
+   * network) and reports whether it yields a key. A configuration failure
+   * answers ready, so `search()` reports it as a structured `WebError`.
+   */
+  async ready(_llmProvider: string | undefined): Promise<boolean> {
+    try {
+      const key = await this.resolveOptions().key.resolve()
+      return key !== undefined && key.trim().length > 0
+    } catch {
+      return true
     }
   }
 

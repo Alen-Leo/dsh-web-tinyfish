@@ -14,6 +14,7 @@ import {
   nonEmpty, validateConfig,
 } from './config.ts'
 import { TinyFishFetchProvider } from './fetch.ts'
+import { parseEndpoint } from './endpoint.ts'
 import { TinyFishSearchProvider } from './search.ts'
 import type {
   Config as TinyfishConfig, ResolvedFetchOptions, ResolvedSearchOptions, SearchConfig, SearchFilters,
@@ -108,7 +109,12 @@ function buildFetchOptions(ctx: Context, config: TinyfishConfig): ResolvedFetchO
  * where the failing provider reports the reason (see `assertRequestConfig`).
  */
 export function apply(ctx: Context, config: TinyfishConfig): void {
-  validateConfig(config.search?.get(), config.fetch?.get())
+  validateConfig(config.search?.get(), config.fetch?.get(), config.requestTimeoutMs.get())
+  // Judge the resolved endpoints here too: `available()` would otherwise
+  // swallow a malformed base into a silent "registered but unavailable",
+  // losing the field-naming diagnosis `parseEndpoint` produces.
+  parseEndpoint(buildSearchOptions(ctx, config).baseURL, 'TinyFish search')
+  parseEndpoint(buildFetchOptions(ctx, config).baseURL, 'TinyFish fetch')
   ctx.web.registerSearchProvider(new TinyFishSearchProvider(() => buildSearchOptions(ctx, config)))
   ctx.web.registerFetchProvider(new TinyFishFetchProvider(() => buildFetchOptions(ctx, config)))
 }

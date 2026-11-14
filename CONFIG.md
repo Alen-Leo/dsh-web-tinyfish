@@ -44,7 +44,7 @@ those too when you raise this one.
 | `recencyMinutes` | 1–5256000 | — | `recency_minutes` — **cannot combine with the date bounds** |
 | `afterDate` | `YYYY-MM-DD` | — | `after_date` — ≤ `beforeDate` |
 | `beforeDate` | `YYYY-MM-DD` | — | `before_date` |
-| `domainType` | `web` \| `news` \| `research_paper` | — | `domain_type` |
+| `domainType` | `web` \| `news` \| `research_paper` | — | `domain_type` — the date and freshness filters are rejected on `research_paper`; use the year bounds |
 | `pubYearMin` | 0–9999 | — | `pub_year_min` — only with `domainType: research_paper` |
 | `pubYearMax` | 0–9999 | — | `pub_year_max` — ≥ `pubYearMin` |
 
@@ -55,7 +55,7 @@ those too when you raise this one.
 | `baseURL` | string | `https://api.fetch.tinyfish.ai` | — |
 | `format` | `markdown` \| `html` | `markdown` | `format` — markdown → text body, html → html body |
 | `ttlSeconds` | integer ≥0 | — | `ttl` — omit = any cache, `0` = live fetch |
-| `perUrlTimeoutMs` | 1–110000 | — | `per_url_timeout_ms` — TinyFish-side per-URL budget; keep below `requestTimeoutMs` |
+| `perUrlTimeoutMs` | 1–110000 | — | `per_url_timeout_ms` — TinyFish-side per-URL budget; must stay below `requestTimeoutMs` (now enforced at load and per request) |
 | `maxTextBytes` | integer ≥1024 | `524288` | local byte cap; result flags `truncated` when cut |
 | `includeSelectors` | string[1..20] | `[]` | `include_selectors` — CSS selectors, each 1–1000 chars |
 | `excludeSelectors` | string[1..20] | `[]` | `exclude_selectors` |

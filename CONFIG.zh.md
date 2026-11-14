@@ -40,7 +40,7 @@
 | `recencyMinutes` | 1–5256000 | — | `recency_minutes`——**不能与日期边界同用** |
 | `afterDate` | `YYYY-MM-DD` | — | `after_date`——≤ `beforeDate` |
 | `beforeDate` | `YYYY-MM-DD` | — | `before_date` |
-| `domainType` | `web` \| `news` \| `research_paper` | — | `domain_type` |
+| `domainType` | `web` \| `news` \| `research_paper` | — | `domain_type`——`research_paper` 不支持日期与新鲜度过滤，改用年份边界 |
 | `pubYearMin` | 0–9999 | — | `pub_year_min`——仅限 `research_paper` |
 | `pubYearMax` | 0–9999 | — | `pub_year_max`——≥ `pubYearMin` |
 
@@ -51,7 +51,7 @@
 | `baseURL` | string | `https://api.fetch.tinyfish.ai` | — |
 | `format` | `markdown` \| `html` | `markdown` | `format`——markdown → text body，html → html body |
 | `ttlSeconds` | 整数 ≥0 | — | `ttl`——缺省任意缓存，`0` 强制 live |
-| `perUrlTimeoutMs` | 1–110000 | — | `per_url_timeout_ms`——TinyFish 侧每 URL 预算，需小于 `requestTimeoutMs` |
+| `perUrlTimeoutMs` | 1–110000 | — | `per_url_timeout_ms`——TinyFish 侧每 URL 预算，必须小于 `requestTimeoutMs`（装载与请求时均会校验） |
 | `maxTextBytes` | 整数 ≥1024 | `524288` | 本地字节上限；截断时结果标记 `truncated` |
 | `includeSelectors` | string[1..20] | `[]` | `include_selectors`——CSS 选择器，每条 1–1000 字符 |
 | `excludeSelectors` | string[1..20] | `[]` | `exclude_selectors` |

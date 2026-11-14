@@ -4,7 +4,7 @@
  * @module dsh-web-tinyfish/tests/search
  */
 
-import { deepStrictEqual, rejects, strictEqual } from 'node:assert'
+import { deepStrictEqual, ok, rejects, strictEqual } from 'node:assert'
 import { describe, it } from 'node:test'
 import { WebError } from '@deepseek-ai/dsh-web'
 import { TinyFishSearchProvider, mapTinyFishSearchResponse } from '../src/search.ts'
@@ -127,15 +127,25 @@ describe('TinyFishSearchProvider', () => {
   it('forwards date bounds and publication-year bounds', async () => {
     const { calls, restore } = stubFetch(() => jsonResponse({ results: [] }))
     try {
+      // The academic corpus carries only the year bounds; the date bounds run
+      // on the web corpus (and the loader now rejects them combined).
       const provider = new TinyFishSearchProvider(searchOptions({
-        filters: { afterDate: '2026-06-01', beforeDate: '2026-06-18', domainType: 'research_paper', pubYearMin: 2020, pubYearMax: 2026 },
+        filters: { afterDate: '2026-06-01', beforeDate: '2026-06-18' },
       }))
-      await provider.search({ query: 'papers' })
+      await provider.search({ query: 'news' })
+      const academic = new TinyFishSearchProvider(searchOptions({
+        filters: { domainType: 'research_paper', pubYearMin: 2020, pubYearMax: 2026 },
+      }))
+      await academic.search({ query: 'papers' })
       const params = new URL(calls[0]!.url).searchParams
       strictEqual(params.get('after_date'), '2026-06-01')
       strictEqual(params.get('before_date'), '2026-06-18')
-      strictEqual(params.get('pub_year_min'), '2020')
-      strictEqual(params.get('pub_year_max'), '2026')
+      strictEqual(params.get('domain_type'), null)
+      const paper = new URL(calls[1]!.url).searchParams
+      strictEqual(paper.get('domain_type'), 'research_paper')
+      strictEqual(paper.get('pub_year_min'), '2020')
+      strictEqual(paper.get('pub_year_max'), '2026')
+      strictEqual(paper.get('after_date'), null)
     } finally { restore() }
   })
 
@@ -177,6 +187,24 @@ describe('TinyFishSearchProvider', () => {
         (error: unknown) => error instanceof WebError
           && error.code === 'WEB_PROVIDER_CREDENTIAL_MISSING'
           && error.message.includes('TINYFISH_API_KEY'),
+      )
+      strictEqual(calls.length, 0)
+    } finally { restore() }
+  })
+
+  it('maps a failing credential-store read onto the seam taxonomy', async () => {
+    const { calls, restore } = stubFetch(() => jsonResponse({}))
+    try {
+      const failing: ApiKeySource = {
+        refName: 'TINYFISH_API_KEY',
+        resolve: async () => { throw new Error('store unreadable') },
+        hasSyncSource: () => true,
+      }
+      await rejects(
+        new TinyFishSearchProvider(searchOptions({ key: failing })).search({ query: 'q' }),
+        (error: unknown) => error instanceof WebError
+          && error.code === 'WEB_PROVIDER_ERROR'
+          && error.message.includes('could not read'),
       )
       strictEqual(calls.length, 0)
     } finally { restore() }
@@ -225,5 +253,26 @@ describe('TinyFishSearchProvider', () => {
     strictEqual(new TinyFishSearchProvider(searchOptions()).available(), true)
     strictEqual(new TinyFishSearchProvider(searchOptions({ baseURL: 'https://localhost/' })).available(), true)
     strictEqual(new TinyFishSearchProvider(searchOptions({ baseURL: 'ftp://example.com/' })).available(), false)
+  })
+
+  it('carries the picker metadata of the 0.2.2 provider surface', () => {
+    const provider = new TinyFishSearchProvider(searchOptions())
+    strictEqual(provider.title, 'TinyFish')
+    const description = provider.description
+    ok(typeof description === 'object' && description !== null)
+    const localized = description as Record<string, string>
+    strictEqual(typeof localized.en, 'string')
+    strictEqual(typeof localized.zh, 'string')
+  })
+
+  it('answers ready() from the resolved credential chain', async () => {
+    strictEqual(await new TinyFishSearchProvider(searchOptions()).ready(undefined), true)
+    strictEqual(await new TinyFishSearchProvider(searchOptions({ key: keySource(undefined) })).ready(undefined), false)
+    // Whitespace-only keys fail the same trim every request path applies.
+    strictEqual(await new TinyFishSearchProvider(searchOptions({ key: keySource('  \n') })).ready(undefined), false)
+    // An unreadable section stays ready: search() reports the failure loudly.
+    const broken = new TinyFishSearchProvider(() => { throw new Error('bad section') })
+    strictEqual(broken.available(), false)
+    strictEqual(await broken.ready(undefined), true)
   })
 })

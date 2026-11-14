@@ -10,6 +10,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
 import { DEFAULT_API_KEY_ENV, nonEmpty } from './config.ts'
+import { formatTransportDetail } from './endpoint.ts'
 import type { ApiKeySource } from './types.ts'
 
 /**
@@ -54,7 +55,18 @@ export function apiKeySource(
 export async function requireApiKey(key: ApiKeySource, owner: string): Promise<string> {
   // Trim every layer's value: keys never legitimately carry end-whitespace,
   // and copy-paste padding would otherwise surface as a confusing 401.
-  const value = (await key.resolve())?.trim()
+  let value: string | undefined
+  try {
+    value = (await key.resolve())?.trim()
+  } catch (error: unknown) {
+    // A broken credentials store is a provider failure, not a missing key —
+    // and it must not escape the seam's error taxonomy.
+    throw new WebError(
+      `${owner} could not read its API key for "${key.refName}": ${formatTransportDetail(error)}`,
+      'WEB_PROVIDER_ERROR',
+      { cause: error },
+    )
+  }
   if (value !== undefined && value.length > 0) return value
   throw new WebError(
     `${owner} has no API key for "${key.refName}"; set that environment variable, `
